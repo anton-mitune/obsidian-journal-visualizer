@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf, TFile } from 'obsidian';
 import { DailyNoteBacklinkInfo } from '../types';
+import { YearlyTrackerComponent } from './yearly-tracker-component';
 
 export const NOTE_INSIGHTS_VIEW_TYPE = 'note-insights-view';
 
@@ -9,6 +10,7 @@ export const NOTE_INSIGHTS_VIEW_TYPE = 'note-insights-view';
  */
 export class NoteInsightsView extends ItemView {
 	private currentNoteInfo: DailyNoteBacklinkInfo | null = null;
+	private yearlyTracker: YearlyTrackerComponent | null = null;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -39,6 +41,9 @@ export class NoteInsightsView extends ItemView {
 	 */
 	clearNoteInfo(): void {
 		this.currentNoteInfo = null;
+		if (this.yearlyTracker) {
+			this.yearlyTracker.clear();
+		}
 		this.render();
 	}
 
@@ -126,6 +131,20 @@ export class NoteInsightsView extends ItemView {
 			text: 'Number of distinct daily notes from this month that link to this note',
 			cls: 'note-insights-description'
 		});
+
+		// Yearly tracker section
+		if (this.currentNoteInfo.yearlyData) {
+			const yearlySection = container.createEl('div', { cls: 'note-insights-section' });
+			yearlySection.createEl('div', {
+				text: 'Yearly tracker',
+				cls: 'note-insights-label'
+			});
+			// Create yearly tracker container
+			const trackerContainer = yearlySection.createEl('div', { cls: 'note-insights-yearly-tracker' });
+			// Always create a new tracker for each note
+			this.yearlyTracker = new YearlyTrackerComponent(trackerContainer);
+			this.yearlyTracker.updateData(this.currentNoteInfo.yearlyData);
+		}
 	}
 
 	async onOpen(): Promise<void> {
@@ -135,5 +154,6 @@ export class NoteInsightsView extends ItemView {
 	async onClose(): Promise<void> {
 		// Cleanup when view is closed
 		this.currentNoteInfo = null;
+		this.yearlyTracker = null;
 	}
 }

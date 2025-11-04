@@ -1,6 +1,6 @@
 import { App, TFile, WorkspaceLeaf, Plugin } from 'obsidian';
 import { DailyNoteClassifier } from '../utils/daily-note-classifier';
-import { BacklinkInfo } from '../types';
+import { BacklinkInfo, DailyNoteBacklinkInfo } from '../types';
 
 /**
  * Component that watches for note changes and triggers backlink count updates
@@ -9,7 +9,7 @@ export class BacklinkWatcher {
 	private app: App;
 	private plugin: Plugin;
 	private dailyNoteClassifier: DailyNoteClassifier;
-	private onBacklinkCountChanged: (count: number, noteTitle: string) => void;
+	private onNoteInfoChanged: (noteInfo: DailyNoteBacklinkInfo) => void;
 	private currentFile: TFile | null = null;
 	
 	// Bound event handlers to maintain reference for cleanup
@@ -20,12 +20,12 @@ export class BacklinkWatcher {
 		app: App, 
 		plugin: Plugin,
 		dailyNoteClassifier: DailyNoteClassifier,
-		onBacklinkCountChanged: (count: number, noteTitle: string) => void
+		onNoteInfoChanged: (noteInfo: DailyNoteBacklinkInfo) => void
 	) {
 		this.app = app;
 		this.plugin = plugin;
 		this.dailyNoteClassifier = dailyNoteClassifier;
-		this.onBacklinkCountChanged = onBacklinkCountChanged;
+		this.onNoteInfoChanged = onNoteInfoChanged;
 		
 		// Bind event handlers once
 		this.boundHandleLeafChange = this.handleLeafChange.bind(this);
@@ -94,8 +94,18 @@ export class BacklinkWatcher {
 		// Count daily note backlinks from current month
 		const count = this.dailyNoteClassifier.countCurrentMonthDailyNoteBacklinks(backlinks);
 
+		// Get yearly daily note backlink data
+		const yearlyData = this.dailyNoteClassifier.getYearlyDailyNoteBacklinks(backlinks);
+
+		// Create note info object
+		const noteInfo: DailyNoteBacklinkInfo = {
+			count: count,
+			noteTitle: file.basename,
+			yearlyData: yearlyData
+		};
+
 		// Notify UI component
-		this.onBacklinkCountChanged(count, file.basename);
+		this.onNoteInfoChanged(noteInfo);
 	}
 
 	/**

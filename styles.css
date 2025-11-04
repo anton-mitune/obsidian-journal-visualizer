@@ -107,3 +107,291 @@
         font-size: 1.5em;
     }
 }
+
+/* Yearly Tracker Styles */
+.yearly-tracker-container {
+    margin-top: 16px;
+    position: relative; /* For popover positioning */
+}
+
+.yearly-tracker-title {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.yearly-tracker-grid {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--text-faint);
+}
+
+.yearly-tracker-months {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1px;
+    margin-left: 20px; /* Align with squares, accounting for weekday labels */
+}
+
+.yearly-tracker-month-label {
+    text-align: center;
+    font-size: 9px;
+    color: var(--text-faint);
+}
+
+.yearly-tracker-days {
+    display: flex;
+    gap: 3px;
+}
+
+.yearly-tracker-weekdays {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 15px;
+    justify-content: space-between;
+}
+
+.yearly-tracker-weekday-label {
+    font-size: 9px;
+    color: var(--text-faint);
+    text-align: right;
+    height: 11px;
+    line-height: 11px;
+}
+
+.yearly-tracker-squares {
+    display: grid;
+    grid-template-rows: repeat(7, 11px);
+    grid-auto-flow: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.yearly-tracker-square {
+    width: 11px;
+    height: 11px;
+    border-radius: 2px;
+    border: 1px solid var(--background-modifier-border-hover);
+    cursor: pointer;
+    transition: all 0.1s ease;
+}
+
+.yearly-tracker-square-empty {
+    visibility: hidden;
+}
+
+.yearly-tracker-square-hover {
+    border-color: var(--text-accent);
+    transform: scale(1.1);
+    z-index: 1;
+}
+
+/* Intensity color scale */
+.yearly-tracker-square-intensity-0 {
+    background-color: var(--background-secondary-alt);
+    border-color: var(--background-modifier-border);
+}
+
+.yearly-tracker-square-intensity-1 {
+    background-color: color-mix(in srgb, var(--color-accent) 20%, var(--background-secondary-alt));
+    border-color: color-mix(in srgb, var(--color-accent) 30%, var(--background-modifier-border));
+}
+
+.yearly-tracker-square-intensity-2 {
+    background-color: color-mix(in srgb, var(--color-accent) 40%, var(--background-secondary-alt));
+    border-color: color-mix(in srgb, var(--color-accent) 50%, var(--background-modifier-border));
+}
+
+.yearly-tracker-square-intensity-3 {
+    background-color: color-mix(in srgb, var(--color-accent) 65%, var(--background-secondary-alt));
+    border-color: color-mix(in srgb, var(--color-accent) 70%, var(--background-modifier-border));
+}
+
+.yearly-tracker-square-intensity-4 {
+    background-color: var(--color-accent);
+    border-color: color-mix(in srgb, var(--color-accent) 80%, var(--text-normal));
+}
+
+/* Legend */
+.yearly-tracker-legend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    justify-content: flex-end;
+    font-size: 9px;
+    color: var(--text-faint);
+}
+
+.yearly-tracker-legend-label {
+    font-size: 9px;
+    color: var(--text-faint);
+}
+
+.yearly-tracker-legend-square {
+    width: 10px;
+    height: 10px;
+    border-radius: 1px;
+    margin: 0 1px;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .yearly-tracker-grid {
+        font-size: 9px;
+    }
+    
+    .yearly-tracker-squares {
+        gap: 1px;
+    }
+    
+    .yearly-tracker-square {
+        width: 9px;
+        height: 9px;
+    }
+    
+    .yearly-tracker-weekday-label {
+        font-size: 8px;
+    }
+    
+    .yearly-tracker-month-label {
+        font-size: 8px;
+    }
+}
+
+/* Yearly Tracker Popover Styles */
+.yearly-tracker-popover {
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    padding: 0;
+    min-width: 200px;
+    max-width: 300px;
+    font-size: 12px;
+    z-index: 1000;
+    transform: translateX(-50%);
+    pointer-events: none;
+    opacity: 0.95;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.yearly-tracker-popover::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--background-modifier-border);
+}
+
+.yearly-tracker-popover::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--background-primary);
+    margin-top: -1px;
+}
+
+.yearly-tracker-popover-below::before {
+    top: -12px;
+    border-top-color: transparent;
+    border-bottom-color: var(--background-modifier-border);
+}
+
+.yearly-tracker-popover-below::after {
+    top: -11px;
+    border-top-color: transparent;
+    border-bottom-color: var(--background-primary);
+    margin-top: 1px;
+}
+
+.yearly-tracker-popover-header {
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.yearly-tracker-popover-date {
+    font-weight: 600;
+    color: var(--text-normal);
+    font-size: 13px;
+}
+
+.yearly-tracker-popover-content {
+    padding: 12px 16px;
+}
+
+.yearly-tracker-popover-empty {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 8px 0;
+}
+
+.yearly-tracker-popover-count {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.yearly-tracker-popover-count-number {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-accent);
+}
+
+.yearly-tracker-popover-count-label {
+    color: var(--text-normal);
+    font-size: 12px;
+}
+
+.yearly-tracker-popover-lines {
+    margin-top: 8px;
+}
+
+.yearly-tracker-popover-lines-header {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.yearly-tracker-popover-lines-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.yearly-tracker-popover-line {
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--background-secondary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border-left: 2px solid var(--text-accent);
+    font-family: var(--font-monospace);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.yearly-tracker-popover-more {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    margin-top: 4px;
+}

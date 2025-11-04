@@ -62,12 +62,7 @@ export class ViewManager {
 	/**
 	 * Update the view with new daily note backlink information
 	 */
-	updateNoteInfo(count: number, noteTitle: string): void {
-		const noteInfo: DailyNoteBacklinkInfo = {
-			count,
-			noteTitle
-		};
-
+	updateNoteInfo(noteInfo: DailyNoteBacklinkInfo): void {
 		// Ensure we have a current view reference
 		this.ensureViewReference();
 

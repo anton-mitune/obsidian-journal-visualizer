@@ -12,9 +12,26 @@ export const DEFAULT_SETTINGS: VaultVisualizerSettings = {
 export interface DailyNoteBacklinkInfo {
 	count: number;
 	noteTitle: string;
+	yearlyData?: DailyNoteYearlyData; // Optional yearly data for tracker
 }
 
 export interface BacklinkInfo {
 	file: TFile;
 	linkCount: number;
+}
+
+
+export interface DailyNoteBacklinkSummary {
+	linkCount: number;
+	lines?: string[]; // Optional: lines or context from daily note
+}
+
+export interface DailyNoteYearlyData {
+	[dateString: string]: DailyNoteBacklinkSummary;
+}
+
+export interface YearlyTrackerData {
+	noteTitle: string;
+	year: number;
+	dailyLinkCounts: DailyNoteYearlyData;
 }

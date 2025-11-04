@@ -249,3 +249,11 @@ this.registerInterval(window.setInterval(() => { /* ... */ }, 1000));
 - Developer policies: https://docs.obsidian.md/Developer+policies
 - Plugin guidelines: https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines
 - Style guide: https://help.obsidian.md/style-guide
+
+
+## Development methodology
+
+This section is very important:
+- Before starting development, make sure to read and understand the feature specification document for the feature you are going to implement. These documents are located in `docs/features/` and provide detailed ideation, functional requirements, and design considerations.
+- During feature development, always refer to steering documents in `docs/steering/`. These provide critical guidelines on coding conventions, architecture patterns, and terminology. Make sure to always follow these conventions.
+- Once code is implemented, it is reviewed and tested by users. After approval, make sure to update the feature specification document and CHANGELOG.md to reflect the final implementation details.

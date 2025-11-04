@@ -32,8 +32,8 @@ export default class VaultVisualizerPlugin extends Plugin {
 			this.app,
 			this,
 			this.dailyNoteClassifier,
-			(count: number, noteTitle: string) => {
-				this.viewManager.updateNoteInfo(count, noteTitle);
+			(noteInfo) => {
+				this.viewManager.updateNoteInfo(noteInfo);
 			}
 		);
 
