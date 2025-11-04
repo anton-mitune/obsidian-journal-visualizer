@@ -1,5 +1,3 @@
-## 20251103-2131
-- FEA001 iteration 1 
-
-## 20251103-2155
-- FEA001 iteration 2 (TODO)
+## FEA001
+- established new Obsidian view type "note insight"
+- added sample content showing active note title and backlink count from current-month daily notes

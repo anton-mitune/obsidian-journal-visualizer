@@ -1,4 +1,5 @@
 import { App, TFile } from 'obsidian';
+import { BacklinkInfo } from '../types';
 
 /**
  * Utility class for identifying and working with daily notes
@@ -51,17 +52,16 @@ export class DailyNoteClassifier {
 	/**
 	 * Filter backlinks to only include those from daily notes in current month
 	 */
-	filterDailyNoteBacklinks(backlinks: TFile[]): TFile[] {
-		return backlinks.filter(file => this.isDailyNoteFromCurrentMonth(file));
+	filterDailyNoteBacklinks(backlinks: BacklinkInfo[]): BacklinkInfo[] {
+		return backlinks.filter(backlinkInfo => this.isDailyNoteFromCurrentMonth(backlinkInfo.file));
 	}
 
 	/**
-	 * Count distinct daily notes from current month that link to a note
+	 * Count total links from daily notes in current month (including multiple links from same file)
 	 */
-	countCurrentMonthDailyNoteBacklinks(backlinks: TFile[]): number {
+	countCurrentMonthDailyNoteBacklinks(backlinks: BacklinkInfo[]): number {
 		const dailyNoteBacklinks = this.filterDailyNoteBacklinks(backlinks);
-		// Use Set to count only distinct files (in case same file links multiple times)
-		const distinctFiles = new Set(dailyNoteBacklinks.map(file => file.path));
-		return distinctFiles.size;
+		// Sum up all link counts from daily notes in current month
+		return dailyNoteBacklinks.reduce((total, backlinkInfo) => total + backlinkInfo.linkCount, 0);
 	}
 }

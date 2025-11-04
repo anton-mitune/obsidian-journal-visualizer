@@ -1,5 +1,6 @@
 import { App, TFile, WorkspaceLeaf, Plugin } from 'obsidian';
 import { DailyNoteClassifier } from '../utils/daily-note-classifier';
+import { BacklinkInfo } from '../types';
 
 /**
  * Component that watches for note changes and triggers backlink count updates
@@ -92,16 +93,16 @@ export class BacklinkWatcher {
 		
 		// Count daily note backlinks from current month
 		const count = this.dailyNoteClassifier.countCurrentMonthDailyNoteBacklinks(backlinks);
-		
+
 		// Notify UI component
 		this.onBacklinkCountChanged(count, file.basename);
 	}
 
 	/**
-	 * Get all files that link to the specified file
+	 * Get all files that link to the specified file with their link counts
 	 */
-	private getBacklinksForFile(file: TFile): TFile[] {
-		const backlinks: TFile[] = [];
+	private getBacklinksForFile(file: TFile): BacklinkInfo[] {
+		const backlinks: BacklinkInfo[] = [];
 		const resolvedLinks = this.app.metadataCache.resolvedLinks;
 		
 		// Iterate through all files to find those that link to our target file
@@ -110,7 +111,10 @@ export class BacklinkWatcher {
 			if (links && links[file.path]) {
 				const sourceFile = this.app.vault.getAbstractFileByPath(sourcePath);
 				if (sourceFile instanceof TFile) {
-					backlinks.push(sourceFile);
+					backlinks.push({
+						file: sourceFile,
+						linkCount: links[file.path]
+					});
 				}
 			}
 		}
