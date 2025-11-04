@@ -1,16 +1,22 @@
+Version: 2.0
+
 ## Ideation
 - adds a new component to the *note insight* panel 
 - it should display a yearly tracker, git tracker style, or anilist tracker style, showing which days in the current year the active note was linked from a daily note
+- it should display a monthly tracker in same fashion as yearly tracker.
 
 ![Reference screenshot of anilist tracker](../assets/reference-anilist-tracker.png)
 
 ## Requirements
 
-### Requirement 1 — Show current-month daily-note backlink count
+### Requirement 1 — Yearly tracker display
 **User Story:** As a note author, I want to see a yearly tracker in the note insights panel that highlights the days in the current year when the active note was linked from daily notes, so that I can quickly visualize its relevance over time.
 
 ### Requirement 2 - Additional info on hover
 **User Story:** As a note author, I want to see a short summary about the backlinks when I hover over a day in the yearly tracker, so that I can understand how many backlinks were made from what line of daily notes on that specific day.
+
+### Requirement 3 - Monthly tracker display
+**User Story:** As a note author, I want to see a monthly tracker in the note insights panel that highlights the days in the current month when the active note was linked from daily notes, so that I can quickly visualize its relevance over the current month.
 
 ### Assumptions and rules
 - the yearly tracker displays all days from January 1st to December 31st of the current year
@@ -35,3 +41,7 @@ Useful ressources:
 ## Components and Interfaces
 - **YearlyTrackerComponent**: A class that renders the yearly tracker UI in the Note Insights panel.
 
+
+## CHANGELOG
+2025-11-03 19:30 - Initial implementation of yearly tracker component in note insights panel.
+2025-11-04 19:31 - Added monthly tracker component to note insights panel.

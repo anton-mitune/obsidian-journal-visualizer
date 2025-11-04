@@ -66,3 +66,7 @@ Useful resources:
 2) **DailyNoteClassifier** - Identifies daily notes and counts links from current month
 3) **NoteInsightsView** - Custom Obsidian view that displays the insights in right sidebar
 4) **ViewManager** - Manages view lifecycle, registration, and updates
+
+
+## CHANGELOG
+2025-10-28 18:00 - Initial implementation of Note Insights panel showing current-month daily note backlink counts.

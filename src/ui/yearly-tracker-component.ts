@@ -202,10 +202,6 @@ export class YearlyTrackerComponent {
 		const containerRect = this.container.getBoundingClientRect();
 		const popoverRect = this.popover.getBoundingClientRect();
 
-		console.log('Container Rect:', containerRect);
-		console.log('Element Rect:', rect);
-		console.log('Popover Rect:', popoverRect);
-
 		// Calculate position relative to the container
 		let left = rect.left - containerRect.left + rect.width / 2;
 		let top = rect.top - containerRect.top - 10; // 10px above the square

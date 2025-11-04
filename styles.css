@@ -128,19 +128,22 @@
     gap: 8px;
     font-size: 10px;
     color: var(--text-faint);
+    overflow: auto;
 }
 
 .yearly-tracker-months {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
+    display: flex;
     gap: 1px;
     margin-left: 20px; /* Align with squares, accounting for weekday labels */
+    min-width: max-content;
 }
 
 .yearly-tracker-month-label {
     text-align: center;
     font-size: 9px;
     color: var(--text-faint);
+    width: 54px; /* Fixed width for each month (approximately 4 weeks * 11px square width) */
+    flex-shrink: 0;
 }
 
 .yearly-tracker-days {
