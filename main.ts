@@ -2,7 +2,7 @@ import { Plugin } from 'obsidian';
 import { VaultVisualizerSettings, DEFAULT_SETTINGS } from './src/types';
 import { DailyNoteClassifier } from './src/utils/daily-note-classifier';
 import { BacklinkWatcher } from './src/features/backlink-watcher';
-import { UIInjector } from './src/ui/ui-injector';
+import { ViewManager } from './src/ui/view-manager';
 
 /**
  * Vault Visualizer Plugin - Turn your notes into insight
@@ -14,7 +14,7 @@ export default class VaultVisualizerPlugin extends Plugin {
 	settings: VaultVisualizerSettings;
 	private dailyNoteClassifier: DailyNoteClassifier;
 	private backlinkWatcher: BacklinkWatcher;
-	private uiInjector: UIInjector;
+	private viewManager: ViewManager;
 
 	async onload() {
 		// Load settings
@@ -22,14 +22,18 @@ export default class VaultVisualizerPlugin extends Plugin {
 
 		// Initialize components
 		this.dailyNoteClassifier = new DailyNoteClassifier(this.app);
-		this.uiInjector = new UIInjector(this.app);
+		this.viewManager = new ViewManager(this.app, this);
+		
+		// Register the view with Obsidian
+		this.viewManager.registerView();
 		
 		// Create backlink watcher with callback to update UI
 		this.backlinkWatcher = new BacklinkWatcher(
 			this.app,
+			this,
 			this.dailyNoteClassifier,
 			(count: number, noteTitle: string) => {
-				this.uiInjector.updateDailyNoteCount(count, noteTitle);
+				this.viewManager.updateNoteInfo(count, noteTitle);
 			}
 		);
 
@@ -47,8 +51,8 @@ export default class VaultVisualizerPlugin extends Plugin {
 		if (this.backlinkWatcher) {
 			this.backlinkWatcher.stopWatching();
 		}
-		if (this.uiInjector) {
-			this.uiInjector.cleanup();
+		if (this.viewManager) {
+			this.viewManager.cleanup();
 		}
 	}
 
