@@ -119,37 +119,6 @@ export class NoteInsightsView extends ItemView {
 			cls: 'note-insights-note-title'
 		});
 
-		// Daily notes count section
-		const countSection = container.createEl('div', { cls: 'note-insights-section' });
-		countSection.createEl('div', {
-			text: 'Daily notes (this month)',
-			cls: 'note-insights-label'
-		});
-		
-		const countDisplay = countSection.createEl('div', { cls: 'note-insights-count-display' });
-		const countValue = countDisplay.createEl('span', {
-			text: this.currentNoteInfo.count.toString(),
-			cls: 'note-insights-count-value'
-		});
-
-		// Apply styling based on count
-		if (this.currentNoteInfo.count === 0) {
-			countValue.addClass('note-insights-count-zero');
-		} else if (this.currentNoteInfo.count >= 5) {
-			countValue.addClass('note-insights-count-high');
-		}
-
-		const countLabel = countDisplay.createEl('span', {
-			text: this.currentNoteInfo.count === 1 ? ' link' : ' links',
-			cls: 'note-insights-count-label'
-		});
-
-		// Add description for context
-		const description = countSection.createEl('div', {
-			text: 'Number of distinct daily notes from this month that link to this note',
-			cls: 'note-insights-description'
-		});
-
 		// Monthly tracker section
 		if (this.currentNoteInfo.yearlyData) {
 			const monthlySection = container.createEl('div', { cls: 'note-insights-section' });
