@@ -32,14 +32,19 @@ export default class VaultVisualizerPlugin extends Plugin {
 			this.app,
 			this,
 			this.dailyNoteClassifier,
-			(noteInfo, yearBounds) => {
-				this.viewManager.updateNoteInfo(noteInfo, yearBounds);
+			(noteInfo, yearBounds, monthBounds) => {
+				this.viewManager.updateNoteInfo(noteInfo, yearBounds, monthBounds);
 			}
 		);
 
 		// Set up year change callback
 		this.viewManager.setOnYearChangeCallback((year: number) => {
 			this.backlinkWatcher.setCurrentYear(year);
+		});
+
+		// Set up month change callback
+		this.viewManager.setOnMonthChangeCallback((month: number, year: number) => {
+			this.backlinkWatcher.setCurrentMonth(month, year);
 		});
 
 		// Start watching for note changes

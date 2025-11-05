@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf, TFile } from 'obsidian';
-import { DailyNoteBacklinkInfo, YearBounds } from '../types';
+import { DailyNoteBacklinkInfo, YearBounds, MonthBounds } from '../types';
 import { YearlyTrackerComponent } from './yearly-tracker-component';
 import { MonthlyTrackerComponent } from './monthly-tracker-component';
 
@@ -14,7 +14,9 @@ export class NoteInsightsView extends ItemView {
 	private yearlyTracker: YearlyTrackerComponent | null = null;
 	private monthlyTracker: MonthlyTrackerComponent | null = null;
 	private yearBounds: YearBounds | null = null;
+	private monthBounds: MonthBounds | null = null;
 	private onYearChangeCallback?: (year: number) => void;
+	private onMonthChangeCallback?: (month: number, year: number) => void;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -35,10 +37,13 @@ export class NoteInsightsView extends ItemView {
 	/**
 	 * Update the view with new daily note backlink information
 	 */
-	updateNoteInfo(noteInfo: DailyNoteBacklinkInfo, yearBounds?: YearBounds): void {
+	updateNoteInfo(noteInfo: DailyNoteBacklinkInfo, yearBounds?: YearBounds, monthBounds?: MonthBounds): void {
 		this.currentNoteInfo = noteInfo;
 		if (yearBounds) {
 			this.yearBounds = yearBounds;
+		}
+		if (monthBounds) {
+			this.monthBounds = monthBounds;
 		}
 		this.render();
 	}
@@ -48,6 +53,13 @@ export class NoteInsightsView extends ItemView {
 	 */
 	setOnYearChangeCallback(callback: (year: number) => void): void {
 		this.onYearChangeCallback = callback;
+	}
+
+	/**
+	 * Set the callback for when month changes in the monthly tracker
+	 */
+	setOnMonthChangeCallback(callback: (month: number, year: number) => void): void {
+		this.onMonthChangeCallback = callback;
 	}
 
 	/**
@@ -129,8 +141,13 @@ export class NoteInsightsView extends ItemView {
 			// Create monthly tracker container
 			const monthlyTrackerContainer = monthlySection.createEl('div', { cls: 'note-insights-monthly-tracker' });
 			// Always create a new tracker for each note
-			this.monthlyTracker = new MonthlyTrackerComponent(monthlyTrackerContainer);
+			this.monthlyTracker = new MonthlyTrackerComponent(monthlyTrackerContainer, this.onMonthChangeCallback);
 			this.monthlyTracker.updateData(this.currentNoteInfo.yearlyData);
+			
+			// Set month bounds if available
+			if (this.monthBounds) {
+				this.monthlyTracker.setMonthBounds(this.monthBounds);
+			}
 		}
 
 		// Yearly tracker section

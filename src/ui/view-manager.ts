@@ -1,6 +1,6 @@
 import { App, Plugin, WorkspaceLeaf } from 'obsidian';
 import { NoteInsightsView, NOTE_INSIGHTS_VIEW_TYPE } from './note-insights-view';
-import { DailyNoteBacklinkInfo, YearBounds } from '../types';
+import { DailyNoteBacklinkInfo, YearBounds, MonthBounds } from '../types';
 
 /**
  * Manages the Note Insights view lifecycle and registration
@@ -11,6 +11,7 @@ export class ViewManager {
 	private plugin: Plugin;
 	private view: NoteInsightsView | null = null;
 	private onYearChangeCallback?: (year: number) => void;
+	private onMonthChangeCallback?: (month: number, year: number) => void;
 
 	constructor(app: App, plugin: Plugin) {
 		this.app = app;
@@ -24,6 +25,16 @@ export class ViewManager {
 		this.onYearChangeCallback = callback;
 		if (this.view) {
 			this.view.setOnYearChangeCallback(callback);
+		}
+	}
+
+	/**
+	 * Set the callback for when month changes in the monthly tracker
+	 */
+	setOnMonthChangeCallback(callback: (month: number, year: number) => void): void {
+		this.onMonthChangeCallback = callback;
+		if (this.view) {
+			this.view.setOnMonthChangeCallback(callback);
 		}
 	}
 
@@ -71,6 +82,11 @@ export class ViewManager {
 				if (this.onYearChangeCallback) {
 					this.view.setOnYearChangeCallback(this.onYearChangeCallback);
 				}
+				
+				// Set month change callback if available
+				if (this.onMonthChangeCallback) {
+					this.view.setOnMonthChangeCallback(this.onMonthChangeCallback);
+				}
 			}
 		}
 	}
@@ -78,12 +94,12 @@ export class ViewManager {
 	/**
 	 * Update the view with new daily note backlink information
 	 */
-	updateNoteInfo(noteInfo: DailyNoteBacklinkInfo, yearBounds?: YearBounds): void {
+	updateNoteInfo(noteInfo: DailyNoteBacklinkInfo, yearBounds?: YearBounds, monthBounds?: MonthBounds): void {
 		// Ensure we have a current view reference
 		this.ensureViewReference();
 
 		if (this.view) {
-			this.view.updateNoteInfo(noteInfo, yearBounds);
+			this.view.updateNoteInfo(noteInfo, yearBounds, monthBounds);
 		} else {
 			console.log('Vault Visualizer: No view available to update');
 		}

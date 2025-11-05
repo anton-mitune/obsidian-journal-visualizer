@@ -46,3 +46,19 @@ export interface YearBounds {
 	minYear: number;
 	maxYear: number;
 }
+
+export interface MonthNavigationState {
+	currentMonth: number; // 0-11 (January = 0, December = 11)
+	currentYear: number;
+	minMonth: number;
+	minYear: number;
+	maxMonth: number;
+	maxYear: number;
+}
+
+export interface MonthBounds {
+	minMonth: number; // 0-11
+	minYear: number;
+	maxMonth: number; // 0-11
+	maxYear: number;
+}

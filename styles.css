@@ -472,6 +472,56 @@
     margin-bottom: 12px;
 }
 
+.monthly-tracker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.monthly-tracker-month-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.monthly-tracker-month-btn {
+    background: var(--interactive-normal);
+    border: 1px solid var(--interactive-border);
+    border-radius: 4px;
+    color: var(--text-normal);
+    font-size: 0.85em;
+    font-weight: 600;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.monthly-tracker-month-btn:hover:not(:disabled) {
+    background: var(--interactive-hover);
+    border-color: var(--interactive-accent);
+}
+
+.monthly-tracker-month-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.monthly-tracker-current-month {
+    font-weight: 600;
+    color: var(--text-normal);
+    padding: 4px 8px;
+    border-radius: 4px;
+    min-width: 80px;
+    text-align: center;
+    font-size: 0.85em;
+}
+
 .monthly-tracker-grid {
     display: flex;
     flex-direction: column;

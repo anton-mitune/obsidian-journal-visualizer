@@ -1,5 +1,5 @@
 import { App, TFile } from 'obsidian';
-import { BacklinkInfo, DailyNoteYearlyData, YearBounds } from '../types';
+import { BacklinkInfo, DailyNoteYearlyData, YearBounds, MonthBounds } from '../types';
 
 /**
  * Utility class for identifying and working with daily notes
@@ -174,6 +174,115 @@ export class DailyNoteClassifier {
 			}
 		}
 		return yearlyData;
+	}
+
+	/**
+	 * Check if a file path represents a daily note for a specific month/year
+	 */
+	isDailyNoteFromMonth(file: TFile, month: number, year: number): boolean {
+		// Get the daily notes folder
+		const dailyNotesFolder = this.getDailyNotesFolder();
+		
+		// Check if file is in the daily notes folder
+		if (dailyNotesFolder && !file.path.startsWith(dailyNotesFolder)) {
+			return false;
+		}
+
+		// Extract date from filename using YYYY-MM-DD pattern
+		const dateMatch = file.basename.match(/(\d{4})-(\d{2})-(\d{2})/);
+		if (!dateMatch) {
+			return false;
+		}
+
+		const [, fileYearStr, fileMonthStr] = dateMatch;
+		const fileYear = parseInt(fileYearStr);
+		const fileMonth = parseInt(fileMonthStr) - 1; // month is 0-indexed in JS
+
+		return fileYear === year && fileMonth === month;
+	}
+
+	/**
+	 * Get monthly daily note backlink data for a specific month/year
+	 */
+	getMonthlyDailyNoteBacklinks(backlinks: BacklinkInfo[], month: number, year: number): DailyNoteYearlyData {
+		const monthlyData: DailyNoteYearlyData = {};
+		
+		// Filter to specified month/year daily notes only
+		const monthBacklinks = backlinks.filter(backlinkInfo => 
+			this.isDailyNoteFromMonth(backlinkInfo.file, month, year)
+		);
+
+		for (const backlinkInfo of monthBacklinks) {
+			const dateString = this.extractDateFromDailyNote(backlinkInfo.file);
+			if (dateString) {
+				monthlyData[dateString] = {
+					linkCount: backlinkInfo.linkCount,
+					lines: undefined // Could be extended later for line extraction
+				};
+			}
+		}
+		
+		return monthlyData;
+	}
+
+	/**
+	 * Calculate month bounds based on available daily notes
+	 */
+	calculateMonthBounds(backlinks: BacklinkInfo[]): MonthBounds {
+		const dailyNoteBacklinks = backlinks.filter(backlinkInfo => {
+			const dailyNotesFolder = this.getDailyNotesFolder();
+			return !dailyNotesFolder || backlinkInfo.file.path.startsWith(dailyNotesFolder);
+		});
+
+		if (dailyNoteBacklinks.length === 0) {
+			// No daily notes found, default to current month
+			const now = new Date();
+			return {
+				minMonth: now.getMonth(),
+				minYear: now.getFullYear(),
+				maxMonth: now.getMonth(),
+				maxYear: now.getFullYear()
+			};
+		}
+
+		let minYear = Infinity;
+		let minMonth = 11;
+		let maxYear = -Infinity;
+		let maxMonth = 0;
+
+		for (const backlinkInfo of dailyNoteBacklinks) {
+			const dateMatch = backlinkInfo.file.basename.match(/(\d{4})-(\d{2})-(\d{2})/);
+			if (dateMatch) {
+				const year = parseInt(dateMatch[1]);
+				const month = parseInt(dateMatch[2]) - 1; // 0-indexed
+
+				if (year < minYear || (year === minYear && month < minMonth)) {
+					minYear = year;
+					minMonth = month;
+				}
+				if (year > maxYear || (year === maxYear && month > maxMonth)) {
+					maxYear = year;
+					maxMonth = month;
+				}
+			}
+		}
+
+		// Add buffer for current month if it's beyond the range
+		const now = new Date();
+		const currentYear = now.getFullYear();
+		const currentMonth = now.getMonth();
+
+		if (currentYear > maxYear || (currentYear === maxYear && currentMonth > maxMonth)) {
+			maxYear = currentYear;
+			maxMonth = currentMonth;
+		}
+
+		return {
+			minMonth: minMonth === Infinity ? currentMonth : minMonth,
+			minYear: minYear === Infinity ? currentYear : minYear,
+			maxMonth: maxMonth === -Infinity ? currentMonth : maxMonth,
+			maxYear: maxYear === -Infinity ? currentYear : maxYear
+		};
 	}
 
 	/**
