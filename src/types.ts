@@ -35,3 +35,14 @@ export interface YearlyTrackerData {
 	year: number;
 	dailyLinkCounts: DailyNoteYearlyData;
 }
+
+export interface YearNavigationState {
+	currentYear: number;
+	minYear: number;
+	maxYear: number;
+}
+
+export interface YearBounds {
+	minYear: number;
+	maxYear: number;
+}

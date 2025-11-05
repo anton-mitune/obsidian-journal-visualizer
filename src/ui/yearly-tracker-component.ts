@@ -1,4 +1,4 @@
-import { DailyNoteYearlyData, DailyNoteBacklinkSummary } from '../types';
+import { DailyNoteYearlyData, DailyNoteBacklinkSummary, YearNavigationState, YearBounds } from '../types';
 
 /**
  * Component that renders a yearly tracker (git-style grid) showing daily note backlinks
@@ -10,10 +10,26 @@ export class YearlyTrackerComponent {
 	private maxIntensity: number = 5; // Cap intensity at 5 backlinks for consistent coloring
 	private popover: HTMLElement | null = null;
 	private popoverTimeout: NodeJS.Timeout | null = null;
+	private navigationState: YearNavigationState;
+	private yearBounds: YearBounds;
+	private onYearChangeCallback?: (year: number) => void;
 
-	constructor(container: HTMLElement) {
+	constructor(container: HTMLElement, onYearChange?: (year: number) => void) {
 		this.container = container;
 		this.yearlyData = {};
+		this.onYearChangeCallback = onYearChange;
+		
+		// Initialize with current year
+		const currentYear = new Date().getFullYear();
+		this.navigationState = {
+			currentYear,
+			minYear: currentYear - 10, // Default reasonable bounds
+			maxYear: currentYear + 1
+		};
+		this.yearBounds = {
+			minYear: currentYear - 10,
+			maxYear: currentYear + 1
+		};
 	}
 
 	/**
@@ -22,6 +38,48 @@ export class YearlyTrackerComponent {
 	updateData(yearlyData: DailyNoteYearlyData): void {
 		this.yearlyData = yearlyData;
 		this.render();
+	}
+
+	/**
+	 * Set year bounds based on available data
+	 */
+	setYearBounds(bounds: YearBounds): void {
+		this.yearBounds = bounds;
+		this.navigationState.minYear = bounds.minYear;
+		this.navigationState.maxYear = bounds.maxYear;
+		
+		// Ensure current year is within bounds
+		if (this.navigationState.currentYear < bounds.minYear) {
+			this.navigationState.currentYear = bounds.minYear;
+		} else if (this.navigationState.currentYear > bounds.maxYear) {
+			this.navigationState.currentYear = bounds.maxYear;
+		}
+		
+		this.render();
+	}
+
+	/**
+	 * Set the current year to display
+	 */
+	setCurrentYear(year: number): void {
+		if (year < this.yearBounds.minYear || year > this.yearBounds.maxYear) {
+			return; // Invalid year
+		}
+		
+		this.navigationState.currentYear = year;
+		this.render();
+		
+		// Notify callback if provided
+		if (this.onYearChangeCallback) {
+			this.onYearChangeCallback(year);
+		}
+	}
+
+	/**
+	 * Get the current year being displayed
+	 */
+	getCurrentYear(): number {
+		return this.navigationState.currentYear;
 	}
 
 	/**
@@ -44,22 +102,18 @@ export class YearlyTrackerComponent {
 		// Create popover for hover details
 		this.createPopover(trackerContainer);
 
-		// Create header
-		const header = trackerContainer.createEl('div', { cls: 'yearly-tracker-header' });
-		header.createEl('div', {
-			text: 'Daily note backlinks',
-			cls: 'yearly-tracker-title'
-		});
+		// Create header with year navigation
+		this.createHeader(trackerContainer);
 
 		// Create grid container
 		const gridContainer = trackerContainer.createEl('div', { cls: 'yearly-tracker-grid' });
 
-		// Generate all days for current year
-		const currentYear = new Date().getFullYear();
-		const days = this.generateYearDays(currentYear);
+		// Generate all days for selected year
+		const selectedYear = this.navigationState.currentYear;
+		const days = this.generateYearDays(selectedYear);
 
 		// Create month labels
-		this.createMonthLabels(gridContainer, currentYear);
+		this.createMonthLabels(gridContainer, selectedYear);
 
 		// Create day grid
 		const dayGrid = gridContainer.createEl('div', { cls: 'yearly-tracker-days' });
@@ -82,6 +136,52 @@ export class YearlyTrackerComponent {
 		this.popover.style.display = 'none';
 		this.popover.style.position = 'absolute';
 		this.popover.style.zIndex = '1000';
+	}
+
+	/**
+	 * Create header with title and year navigation controls
+	 */
+	private createHeader(container: HTMLElement): void {
+		const header = container.createEl('div', { cls: 'yearly-tracker-header' });
+		
+		// Title
+		header.createEl('div', {
+			text: 'Daily note backlinks',
+			cls: 'yearly-tracker-title'
+		});
+
+		// Year navigation controls
+		const yearNav = header.createEl('div', { cls: 'yearly-tracker-year-nav' });
+		
+		// Previous year button
+		const prevButton = yearNav.createEl('button', {
+			text: '‹',
+			cls: 'yearly-tracker-year-btn yearly-tracker-year-prev'
+		});
+		prevButton.disabled = this.navigationState.currentYear <= this.yearBounds.minYear;
+		prevButton.addEventListener('click', () => {
+			if (this.navigationState.currentYear > this.yearBounds.minYear) {
+				this.setCurrentYear(this.navigationState.currentYear - 1);
+			}
+		});
+
+		// Current year display
+		const yearDisplay = yearNav.createEl('span', {
+			text: this.navigationState.currentYear.toString(),
+			cls: 'yearly-tracker-current-year'
+		});
+
+		// Next year button
+		const nextButton = yearNav.createEl('button', {
+			text: '›',
+			cls: 'yearly-tracker-year-btn yearly-tracker-year-next'
+		});
+		nextButton.disabled = this.navigationState.currentYear >= this.yearBounds.maxYear;
+		nextButton.addEventListener('click', () => {
+			if (this.navigationState.currentYear < this.yearBounds.maxYear) {
+				this.setCurrentYear(this.navigationState.currentYear + 1);
+			}
+		});
 	}
 
 	/**

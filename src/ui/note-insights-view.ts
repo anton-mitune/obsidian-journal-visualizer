@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf, TFile } from 'obsidian';
-import { DailyNoteBacklinkInfo } from '../types';
+import { DailyNoteBacklinkInfo, YearBounds } from '../types';
 import { YearlyTrackerComponent } from './yearly-tracker-component';
 import { MonthlyTrackerComponent } from './monthly-tracker-component';
 
@@ -13,6 +13,8 @@ export class NoteInsightsView extends ItemView {
 	private currentNoteInfo: DailyNoteBacklinkInfo | null = null;
 	private yearlyTracker: YearlyTrackerComponent | null = null;
 	private monthlyTracker: MonthlyTrackerComponent | null = null;
+	private yearBounds: YearBounds | null = null;
+	private onYearChangeCallback?: (year: number) => void;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -33,9 +35,19 @@ export class NoteInsightsView extends ItemView {
 	/**
 	 * Update the view with new daily note backlink information
 	 */
-	updateNoteInfo(noteInfo: DailyNoteBacklinkInfo): void {
+	updateNoteInfo(noteInfo: DailyNoteBacklinkInfo, yearBounds?: YearBounds): void {
 		this.currentNoteInfo = noteInfo;
+		if (yearBounds) {
+			this.yearBounds = yearBounds;
+		}
 		this.render();
+	}
+
+	/**
+	 * Set the callback for when year changes in the yearly tracker
+	 */
+	setOnYearChangeCallback(callback: (year: number) => void): void {
+		this.onYearChangeCallback = callback;
 	}
 
 	/**
@@ -162,8 +174,13 @@ export class NoteInsightsView extends ItemView {
 			// Create yearly tracker container
 			const trackerContainer = yearlySection.createEl('div', { cls: 'note-insights-yearly-tracker' });
 			// Always create a new tracker for each note
-			this.yearlyTracker = new YearlyTrackerComponent(trackerContainer);
+			this.yearlyTracker = new YearlyTrackerComponent(trackerContainer, this.onYearChangeCallback);
 			this.yearlyTracker.updateData(this.currentNoteInfo.yearlyData);
+			
+			// Set year bounds if available
+			if (this.yearBounds) {
+				this.yearlyTracker.setYearBounds(this.yearBounds);
+			}
 		}
 	}
 

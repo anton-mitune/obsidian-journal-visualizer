@@ -1,6 +1,6 @@
 import { App, Plugin, WorkspaceLeaf } from 'obsidian';
 import { NoteInsightsView, NOTE_INSIGHTS_VIEW_TYPE } from './note-insights-view';
-import { DailyNoteBacklinkInfo } from '../types';
+import { DailyNoteBacklinkInfo, YearBounds } from '../types';
 
 /**
  * Manages the Note Insights view lifecycle and registration
@@ -10,10 +10,21 @@ export class ViewManager {
 	private app: App;
 	private plugin: Plugin;
 	private view: NoteInsightsView | null = null;
+	private onYearChangeCallback?: (year: number) => void;
 
 	constructor(app: App, plugin: Plugin) {
 		this.app = app;
 		this.plugin = plugin;
+	}
+
+	/**
+	 * Set the callback for when year changes in the yearly tracker
+	 */
+	setOnYearChangeCallback(callback: (year: number) => void): void {
+		this.onYearChangeCallback = callback;
+		if (this.view) {
+			this.view.setOnYearChangeCallback(callback);
+		}
 	}
 
 	/**
@@ -55,6 +66,11 @@ export class ViewManager {
 					active: true
 				});
 				this.view = rightSplit.view as NoteInsightsView;
+				
+				// Set year change callback if available
+				if (this.onYearChangeCallback) {
+					this.view.setOnYearChangeCallback(this.onYearChangeCallback);
+				}
 			}
 		}
 	}
@@ -62,12 +78,12 @@ export class ViewManager {
 	/**
 	 * Update the view with new daily note backlink information
 	 */
-	updateNoteInfo(noteInfo: DailyNoteBacklinkInfo): void {
+	updateNoteInfo(noteInfo: DailyNoteBacklinkInfo, yearBounds?: YearBounds): void {
 		// Ensure we have a current view reference
 		this.ensureViewReference();
 
 		if (this.view) {
-			this.view.updateNoteInfo(noteInfo);
+			this.view.updateNoteInfo(noteInfo, yearBounds);
 		} else {
 			console.log('Vault Visualizer: No view available to update');
 		}

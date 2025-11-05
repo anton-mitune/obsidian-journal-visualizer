@@ -1,6 +1,6 @@
 import { App, TFile, WorkspaceLeaf, Plugin } from 'obsidian';
 import { DailyNoteClassifier } from '../utils/daily-note-classifier';
-import { BacklinkInfo, DailyNoteBacklinkInfo } from '../types';
+import { BacklinkInfo, DailyNoteBacklinkInfo, YearBounds } from '../types';
 
 /**
  * Component that watches for note changes and triggers backlink count updates
@@ -9,8 +9,9 @@ export class BacklinkWatcher {
 	private app: App;
 	private plugin: Plugin;
 	private dailyNoteClassifier: DailyNoteClassifier;
-	private onNoteInfoChanged: (noteInfo: DailyNoteBacklinkInfo) => void;
+	private onNoteInfoChanged: (noteInfo: DailyNoteBacklinkInfo, yearBounds: YearBounds) => void;
 	private currentFile: TFile | null = null;
+	private currentYear: number = new Date().getFullYear();
 	
 	// Bound event handlers to maintain reference for cleanup
 	private boundHandleLeafChange: (leaf: WorkspaceLeaf | null) => void;
@@ -20,7 +21,7 @@ export class BacklinkWatcher {
 		app: App, 
 		plugin: Plugin,
 		dailyNoteClassifier: DailyNoteClassifier,
-		onNoteInfoChanged: (noteInfo: DailyNoteBacklinkInfo) => void
+		onNoteInfoChanged: (noteInfo: DailyNoteBacklinkInfo, yearBounds: YearBounds) => void
 	) {
 		this.app = app;
 		this.plugin = plugin;
@@ -30,6 +31,17 @@ export class BacklinkWatcher {
 		// Bind event handlers once
 		this.boundHandleLeafChange = this.handleLeafChange.bind(this);
 		this.boundHandleFileOpen = this.handleFileOpen.bind(this);
+	}
+
+	/**
+	 * Set the current year for data fetching
+	 */
+	setCurrentYear(year: number): void {
+		this.currentYear = year;
+		// Re-update the current file with new year data
+		if (this.currentFile) {
+			this.updateBacklinkCount(this.currentFile);
+		}
 	}
 
 	/**
@@ -94,8 +106,11 @@ export class BacklinkWatcher {
 		// Count daily note backlinks from current month
 		const count = this.dailyNoteClassifier.countCurrentMonthDailyNoteBacklinks(backlinks);
 
-		// Get yearly daily note backlink data
-		const yearlyData = this.dailyNoteClassifier.getYearlyDailyNoteBacklinks(backlinks);
+		// Get yearly daily note backlink data for the selected year
+		const yearlyData = this.dailyNoteClassifier.getYearlyDailyNoteBacklinks(backlinks, this.currentYear);
+
+		// Calculate year bounds based on available daily notes
+		const yearBounds = this.dailyNoteClassifier.getYearBounds(backlinks);
 
 		// Create note info object
 		const noteInfo: DailyNoteBacklinkInfo = {
@@ -104,8 +119,8 @@ export class BacklinkWatcher {
 			yearlyData: yearlyData
 		};
 
-		// Notify UI component
-		this.onNoteInfoChanged(noteInfo);
+		// Notify UI component with year bounds
+		this.onNoteInfoChanged(noteInfo, yearBounds);
 	}
 
 	/**

@@ -1,5 +1,5 @@
 import { App, TFile } from 'obsidian';
-import { BacklinkInfo, DailyNoteYearlyData } from '../types';
+import { BacklinkInfo, DailyNoteYearlyData, YearBounds } from '../types';
 
 /**
  * Utility class for identifying and working with daily notes
@@ -50,9 +50,9 @@ export class DailyNoteClassifier {
 	}
 
 	/**
-	 * Check if a file path represents a daily note for the current year
+	 * Check if a file path represents a daily note for a specific year
 	 */
-	isDailyNoteFromCurrentYear(file: TFile): boolean {
+	isDailyNoteFromYear(file: TFile, year: number): boolean {
 		// Get the daily notes folder
 		const dailyNotesFolder = this.getDailyNotesFolder();
 		
@@ -67,13 +67,52 @@ export class DailyNoteClassifier {
 			return false;
 		}
 
-		const [, year] = dateMatch;
-		const fileYear = parseInt(year);
+		const [, yearStr] = dateMatch;
+		const fileYear = parseInt(yearStr);
 
-		// Get current year
-		const currentYear = new Date().getFullYear();
+		return fileYear === year;
+	}
 
-		return fileYear === currentYear;
+	/**
+	 * Get year bounds based on available daily notes in the vault
+	 */
+	getYearBounds(backlinks: BacklinkInfo[]): YearBounds {
+		let minYear = new Date().getFullYear();
+		let maxYear = new Date().getFullYear();
+
+		for (const backlinkInfo of backlinks) {
+			if (this.isDailyNote(backlinkInfo.file)) {
+				const dateString = this.extractDateFromDailyNote(backlinkInfo.file);
+				if (dateString) {
+					const year = parseInt(dateString.substring(0, 4));
+					minYear = Math.min(minYear, year);
+					maxYear = Math.max(maxYear, year);
+				}
+			}
+		}
+
+		// Extend bounds slightly for better UX
+		minYear = Math.max(minYear - 1, 2000); // Don't go before year 2000
+		maxYear = Math.min(maxYear + 1, new Date().getFullYear() + 1); // Don't go beyond next year
+
+		return { minYear, maxYear };
+	}
+
+	/**
+	 * Check if a file is a daily note (regardless of year)
+	 */
+	isDailyNote(file: TFile): boolean {
+		// Get the daily notes folder
+		const dailyNotesFolder = this.getDailyNotesFolder();
+		
+		// Check if file is in the daily notes folder
+		if (dailyNotesFolder && !file.path.startsWith(dailyNotesFolder)) {
+			return false;
+		}
+
+		// Extract date from filename using YYYY-MM-DD pattern
+		const dateMatch = file.basename.match(/(\d{4})-(\d{2})-(\d{2})/);
+		return dateMatch !== null;
 	}
 
 	/**
@@ -104,16 +143,16 @@ export class DailyNoteClassifier {
 	}
 
 	/**
-	 * Get yearly daily note backlink data for the current year
+	 * Get yearly daily note backlink data for a specific year
 	 */
-	getYearlyDailyNoteBacklinks(backlinks: BacklinkInfo[]): DailyNoteYearlyData {
+	getYearlyDailyNoteBacklinks(backlinks: BacklinkInfo[], year: number = new Date().getFullYear()): DailyNoteYearlyData {
 		const yearlyData: DailyNoteYearlyData = {};
-		// Filter to current year daily notes only
-		const currentYearBacklinks = backlinks.filter(backlinkInfo => 
-			this.isDailyNoteFromCurrentYear(backlinkInfo.file)
+		// Filter to specified year daily notes only
+		const yearBacklinks = backlinks.filter(backlinkInfo => 
+			this.isDailyNoteFromYear(backlinkInfo.file, year)
 		);
 
-		for (const backlinkInfo of currentYearBacklinks) {
+		for (const backlinkInfo of yearBacklinks) {
 			const dateString = this.extractDateFromDailyNote(backlinkInfo.file);
 			if (dateString) {
 				// Optionally extract lines from the daily note file for hover summary
@@ -135,5 +174,12 @@ export class DailyNoteClassifier {
 			}
 		}
 		return yearlyData;
+	}
+
+	/**
+	 * Get yearly daily note backlink data for the current year (deprecated - use getYearlyDailyNoteBacklinks)
+	 */
+	getYearlyDailyNoteBacklinksLegacy(backlinks: BacklinkInfo[]): DailyNoteYearlyData {
+		return this.getYearlyDailyNoteBacklinks(backlinks, new Date().getFullYear());
 	}
 }
