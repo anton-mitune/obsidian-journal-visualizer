@@ -1,6 +1,7 @@
 import { ItemView, WorkspaceLeaf, TFile } from 'obsidian';
 import { DailyNoteBacklinkInfo } from '../types';
 import { YearlyTrackerComponent } from './yearly-tracker-component';
+import { MonthlyTrackerComponent } from './monthly-tracker-component';
 
 export const NOTE_INSIGHTS_VIEW_TYPE = 'note-insights-view';
 
@@ -11,6 +12,7 @@ export const NOTE_INSIGHTS_VIEW_TYPE = 'note-insights-view';
 export class NoteInsightsView extends ItemView {
 	private currentNoteInfo: DailyNoteBacklinkInfo | null = null;
 	private yearlyTracker: YearlyTrackerComponent | null = null;
+	private monthlyTracker: MonthlyTrackerComponent | null = null;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -44,6 +46,9 @@ export class NoteInsightsView extends ItemView {
 		if (this.yearlyTracker) {
 			this.yearlyTracker.clear();
 		}
+		if (this.monthlyTracker) {
+			this.monthlyTracker.clear();
+		}
 		this.render();
 	}
 
@@ -53,6 +58,7 @@ export class NoteInsightsView extends ItemView {
 	private render(): void {
 		const container = this.containerEl;
 		container.empty();
+		container.addClass('note-insights-view');
 
 		// Add view header
 		const header = container.createEl('div', { cls: 'note-insights-header' });
@@ -132,6 +138,20 @@ export class NoteInsightsView extends ItemView {
 			cls: 'note-insights-description'
 		});
 
+		// Monthly tracker section
+		if (this.currentNoteInfo.yearlyData) {
+			const monthlySection = container.createEl('div', { cls: 'note-insights-section' });
+			monthlySection.createEl('div', {
+				text: 'Monthly tracker',
+				cls: 'note-insights-label'
+			});
+			// Create monthly tracker container
+			const monthlyTrackerContainer = monthlySection.createEl('div', { cls: 'note-insights-monthly-tracker' });
+			// Always create a new tracker for each note
+			this.monthlyTracker = new MonthlyTrackerComponent(monthlyTrackerContainer);
+			this.monthlyTracker.updateData(this.currentNoteInfo.yearlyData);
+		}
+
 		// Yearly tracker section
 		if (this.currentNoteInfo.yearlyData) {
 			const yearlySection = container.createEl('div', { cls: 'note-insights-section' });
@@ -155,5 +175,6 @@ export class NoteInsightsView extends ItemView {
 		// Cleanup when view is closed
 		this.currentNoteInfo = null;
 		this.yearlyTracker = null;
+		this.monthlyTracker = null;
 	}
 }

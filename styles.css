@@ -1,9 +1,16 @@
 /* Vault Visualizer Plugin Styles */
 
 /* Note Insights View Styles */
+.note-insights-view {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
 .note-insights-header {
     padding: 16px;
     border-bottom: 1px solid var(--background-modifier-border);
+    flex-shrink: 0;
 }
 
 .note-insights-title {
@@ -15,6 +22,10 @@
 
 .note-insights-content {
     padding: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    min-height: 0;
 }
 
 .note-insights-section {
@@ -397,4 +408,242 @@
     font-style: italic;
     text-align: center;
     margin-top: 4px;
+}
+
+/* Monthly Tracker Styles */
+.monthly-tracker-container {
+    margin-top: 12px;
+}
+
+.monthly-tracker-title {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: var(--text-normal);
+    margin-bottom: 12px;
+}
+
+.monthly-tracker-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+}
+
+.monthly-tracker-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    width: 100%;
+    max-width: 280px;
+}
+
+.monthly-tracker-weekday-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 2px;
+    font-weight: 500;
+}
+
+.monthly-tracker-days {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.monthly-tracker-squares {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    width: 100%;
+    max-width: 280px;
+}
+
+.monthly-tracker-square {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-border);
+    cursor: pointer;
+    transition: all 0.1s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.monthly-tracker-square-empty {
+    background-color: transparent;
+    border: none;
+    cursor: default;
+}
+
+.monthly-tracker-square-hover {
+    transform: scale(1.1);
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.monthly-tracker-square-day {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-normal);
+    z-index: 1;
+}
+
+/* Monthly tracker intensity colors - same as yearly but reusable */
+.monthly-tracker-square-intensity-0 {
+    background-color: var(--background-secondary);
+}
+
+.monthly-tracker-square-intensity-0 .monthly-tracker-square-day {
+    color: var(--text-muted);
+}
+
+.monthly-tracker-square-intensity-1 {
+    background-color: var(--color-green-rgba);
+}
+
+.monthly-tracker-square-intensity-2 {
+    background-color: color-mix(in srgb, var(--color-green) 40%, transparent);
+}
+
+.monthly-tracker-square-intensity-3 {
+    background-color: color-mix(in srgb, var(--color-green) 65%, transparent);
+}
+
+.monthly-tracker-square-intensity-4 {
+    background-color: var(--color-green);
+}
+
+.monthly-tracker-square-intensity-4 .monthly-tracker-square-day {
+    color: white;
+}
+
+.monthly-tracker-legend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 12px;
+    font-size: 10px;
+    justify-content: center;
+}
+
+.monthly-tracker-legend-label {
+    color: var(--text-muted);
+    margin: 0 2px;
+}
+
+.monthly-tracker-legend-square {
+    width: 10px !important;
+    height: 10px !important;
+    cursor: default;
+}
+
+/* Monthly tracker popover styles - similar to yearly */
+.monthly-tracker-popover {
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    max-width: 300px;
+    min-width: 200px;
+    font-size: 12px;
+    z-index: 1000;
+    transform: translateX(-50%);
+}
+
+.monthly-tracker-popover-header {
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.monthly-tracker-popover-date {
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.monthly-tracker-popover-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.monthly-tracker-popover-empty {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.monthly-tracker-popover-count {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.monthly-tracker-popover-count-number {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-accent);
+}
+
+.monthly-tracker-popover-count-label {
+    color: var(--text-muted);
+}
+
+.monthly-tracker-popover-lines {
+    margin-top: 6px;
+}
+
+.monthly-tracker-popover-lines-header {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+.monthly-tracker-popover-lines-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.monthly-tracker-popover-line {
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--background-secondary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border-left: 2px solid var(--text-accent);
+    font-family: var(--font-monospace);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.monthly-tracker-popover-more {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    margin-top: 4px;
+}
+
+/* Responsive adjustments for monthly tracker */
+@media (max-width: 768px) {
+    .monthly-tracker-squares {
+        max-width: 240px;
+    }
+    
+    .monthly-tracker-square {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .monthly-tracker-square-day {
+        font-size: 10px;
+    }
 }
