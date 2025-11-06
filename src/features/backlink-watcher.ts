@@ -1,6 +1,6 @@
 import { App, TFile, WorkspaceLeaf, Plugin } from 'obsidian';
-import { DailyNoteClassifier } from '../utils/daily-note-classifier';
-import { BacklinkInfo, DailyNoteBacklinkInfo, YearBounds, MonthBounds } from '../types';
+import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
+import { DailyNoteBacklinkInfo, YearBounds, MonthBounds } from '../types';
 
 /**
  * Component that watches for note changes and triggers backlink count updates
@@ -8,7 +8,7 @@ import { BacklinkInfo, DailyNoteBacklinkInfo, YearBounds, MonthBounds } from '..
 export class BacklinkWatcher {
 	private app: App;
 	private plugin: Plugin;
-	private dailyNoteClassifier: DailyNoteClassifier;
+	private analysisService: BacklinkAnalysisService;
 	private onNoteInfoChanged: (noteInfo: DailyNoteBacklinkInfo, yearBounds: YearBounds, monthBounds: MonthBounds) => void;
 	private currentFile: TFile | null = null;
 	private currentYear: number = new Date().getFullYear();
@@ -22,12 +22,12 @@ export class BacklinkWatcher {
 	constructor(
 		app: App, 
 		plugin: Plugin,
-		dailyNoteClassifier: DailyNoteClassifier,
+		analysisService: BacklinkAnalysisService,
 		onNoteInfoChanged: (noteInfo: DailyNoteBacklinkInfo, yearBounds: YearBounds, monthBounds: MonthBounds) => void
 	) {
 		this.app = app;
 		this.plugin = plugin;
-		this.dailyNoteClassifier = dailyNoteClassifier;
+		this.analysisService = analysisService;
 		this.onNoteInfoChanged = onNoteInfoChanged;
 		
 		// Bind event handlers once
@@ -114,53 +114,14 @@ export class BacklinkWatcher {
 	 * Calculate and update the daily note backlink count for a specific file
 	 */
 	private updateBacklinkCount(file: TFile): void {
-		// Get backlinks for the current file
-		const backlinks = this.getBacklinksForFile(file);
+		// Analyze the note using the centralized service
+		const noteInfo = this.analysisService.analyzeNote(file, this.currentYear);
 		
-		// Count daily note backlinks from current month
-		const count = this.dailyNoteClassifier.countCurrentMonthDailyNoteBacklinks(backlinks);
-
-		// Get yearly daily note backlink data for the selected year
-		const yearlyData = this.dailyNoteClassifier.getYearlyDailyNoteBacklinks(backlinks, this.currentYear);
-
-		// Calculate year bounds based on available daily notes
-		const yearBounds = this.dailyNoteClassifier.getYearBounds(backlinks);
-
-		// Calculate month bounds based on available daily notes
-		const monthBounds = this.dailyNoteClassifier.calculateMonthBounds(backlinks);
-
-		// Create note info object
-		const noteInfo: DailyNoteBacklinkInfo = {
-			count: count,
-			noteTitle: file.basename,
-			yearlyData: yearlyData
-		};
+		// Get year and month bounds
+		const yearBounds = this.analysisService.getYearBounds(file);
+		const monthBounds = this.analysisService.getMonthBounds(file);
 
 		// Notify UI component with year and month bounds
 		this.onNoteInfoChanged(noteInfo, yearBounds, monthBounds);
-	}
-
-	/**
-	 * Get all files that link to the specified file with their link counts
-	 */
-	private getBacklinksForFile(file: TFile): BacklinkInfo[] {
-		const backlinks: BacklinkInfo[] = [];
-		const resolvedLinks = this.app.metadataCache.resolvedLinks;
-		
-		// Iterate through all files to find those that link to our target file
-		for (const sourcePath in resolvedLinks) {
-			const links = resolvedLinks[sourcePath];
-			if (links && links[file.path]) {
-				const sourceFile = this.app.vault.getAbstractFileByPath(sourcePath);
-				if (sourceFile instanceof TFile) {
-					backlinks.push({
-						file: sourceFile,
-						linkCount: links[file.path]
-					});
-				}
-			}
-		}
-		
-		return backlinks;
 	}
 }

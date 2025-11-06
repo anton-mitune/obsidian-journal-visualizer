@@ -53,41 +53,52 @@ export class ViewManager {
 			this.activateView();
 		});
 
-		// Auto-open the view on startup
-		this.activateView();
+		// Auto-open the view on startup after workspace is ready
+		this.app.workspace.onLayoutReady(() => {
+			this.activateView();
+		});
 	}
 
 	/**
 	 * Activate the view in the right sidebar
 	 */
 	private async activateView(): Promise<void> {
-		// Check if view already exists
-		const existingLeaf = this.app.workspace.getLeavesOfType(NOTE_INSIGHTS_VIEW_TYPE)?.[0];
-		
-		if (existingLeaf) {
-			// If view exists, reveal it
-			this.app.workspace.revealLeaf(existingLeaf);
-			this.view = existingLeaf.view as NoteInsightsView;
-		} else {
-			// Create new view in right sidebar
-			const rightSplit = this.app.workspace.getRightLeaf(false);
-			if (rightSplit) {
-				await rightSplit.setViewState({
-					type: NOTE_INSIGHTS_VIEW_TYPE,
-					active: true
-				});
-				this.view = rightSplit.view as NoteInsightsView;
-				
-				// Set year change callback if available
-				if (this.onYearChangeCallback) {
-					this.view.setOnYearChangeCallback(this.onYearChangeCallback);
+		try {
+			// Check if view already exists
+			const existingLeaf = this.app.workspace.getLeavesOfType(NOTE_INSIGHTS_VIEW_TYPE)?.[0];
+			
+			if (existingLeaf) {
+				// If view exists, reveal it
+				this.app.workspace.revealLeaf(existingLeaf);
+				this.view = existingLeaf.view as NoteInsightsView;
+			} else {
+				// Wait for workspace to be ready
+				if (!this.app.workspace.layoutReady) {
+					return;
 				}
 				
-				// Set month change callback if available
-				if (this.onMonthChangeCallback) {
-					this.view.setOnMonthChangeCallback(this.onMonthChangeCallback);
+				// Create new view in right sidebar
+				const rightLeaf = this.app.workspace.getRightLeaf(false);
+				if (rightLeaf) {
+					await rightLeaf.setViewState({
+						type: NOTE_INSIGHTS_VIEW_TYPE,
+						active: true
+					});
+					this.view = rightLeaf.view as NoteInsightsView;
+					
+					// Set year change callback if available
+					if (this.onYearChangeCallback && this.view) {
+						this.view.setOnYearChangeCallback(this.onYearChangeCallback);
+					}
+					
+					// Set month change callback if available
+					if (this.onMonthChangeCallback && this.view) {
+						this.view.setOnMonthChangeCallback(this.onMonthChangeCallback);
+					}
 				}
 			}
+		} catch (error) {
+			console.error('Vault Visualizer: Error activating view:', error);
 		}
 	}
 
@@ -98,10 +109,11 @@ export class ViewManager {
 		// Ensure we have a current view reference
 		this.ensureViewReference();
 
-		if (this.view) {
+		if (this.view && typeof this.view.updateNoteInfo === 'function') {
 			this.view.updateNoteInfo(noteInfo, yearBounds, monthBounds);
 		} else {
-			console.log('Vault Visualizer: No view available to update');
+			// View not ready yet, will update on next call
+			console.debug('Vault Visualizer: View not ready to update');
 		}
 	}
 

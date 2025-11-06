@@ -102,6 +102,44 @@
     margin: 0;
 }
 
+/* Note Insight Code Block Styles (FEA004) */
+.note-insight-code-block {
+    padding: 16px;
+    background-color: var(--background-secondary);
+    border-radius: 6px;
+    border: 1px solid var(--background-modifier-border);
+    margin: 8px 0;
+}
+
+.note-insight-title {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--text-normal);
+    margin: 0 0 12px 0;
+}
+
+.note-insight-error {
+    color: var(--text-error);
+    padding: 8px;
+    background-color: var(--background-modifier-error);
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-error-border);
+    font-size: 0.9em;
+}
+
+.yearly-tracker-wrapper,
+.monthly-tracker-wrapper {
+    margin-top: 8px;
+}
+
+/* Note Selector Modal Styles */
+.note-selector-path {
+    display: block;
+    color: var(--text-faint);
+    font-size: 0.85em;
+    margin-top: 2px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .note-insights-header,
@@ -116,6 +154,10 @@
     
     .note-insights-count-value {
         font-size: 1.5em;
+    }
+    
+    .note-insight-code-block {
+        padding: 12px;
     }
 }
 
