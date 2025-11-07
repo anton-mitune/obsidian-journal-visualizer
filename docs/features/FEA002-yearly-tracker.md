@@ -47,9 +47,3 @@ Useful ressources:
 ## Components and Interfaces
 - **YearlyTrackerComponent**: A class that renders the yearly tracker UI in the Note Insights panel with year navigation capabilities.
 - **YearNavigationControls**: Navigation interface for switching between years (previous/next buttons and/or year selector).
-
-
-## CHANGELOG
-2025-11-03 19:30 - Initial implementation of yearly tracker component in note insights panel.
-2025-11-04 19:31 - Added monthly tracker component to note insights panel.
-2025-11-05 - Updated specification to include year navigation functionality, allowing users to view historical yearly tracking data.

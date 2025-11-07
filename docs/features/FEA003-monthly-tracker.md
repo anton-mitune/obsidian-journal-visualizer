@@ -63,7 +63,3 @@ Useful resources:
 - **MonthlyTrackerComponent**: A class that renders the monthly tracker UI in the Note Insights panel with month navigation capabilities.
 - **MonthBounds**: Interface for defining valid month range based on available daily note data
 
-
-## CHANGELOG
-2025-11-03 20:21 - Initial implementation of monthly tracker component in note insights panel.
-2025-11-05 - Updated specification to include month navigation functionality, allowing users to view historical monthly tracking data independently from yearly tracker.
