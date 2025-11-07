@@ -83,6 +83,9 @@ export default class VaultVisualizerPlugin extends Plugin {
 		if (this.backlinkWatcher) {
 			this.backlinkWatcher.stopWatching();
 		}
+		if (this.codeBlockProcessor) {
+			this.codeBlockProcessor.cleanup();
+		}
 		if (this.viewManager) {
 			this.viewManager.cleanup();
 		}

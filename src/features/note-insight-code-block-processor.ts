@@ -1,7 +1,19 @@
-import { App, MarkdownPostProcessorContext, Plugin } from 'obsidian';
+import { App, MarkdownPostProcessorContext, Plugin, TFile, EventRef, MarkdownRenderChild } from 'obsidian';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { YearlyTrackerComponent } from '../ui/yearly-tracker-component';
 import { MonthlyTrackerComponent } from '../ui/monthly-tracker-component';
+
+/**
+ * Metadata for tracking a rendered code block and its refresh lifecycle
+ */
+interface CodeBlockInstance {
+	component: YearlyTrackerComponent | MonthlyTrackerComponent;
+	notePath: string;
+	containerFilePath: string;
+	eventRef: EventRef;
+	type: 'yearly' | 'monthly';
+	ctx: MarkdownPostProcessorContext;
+}
 
 /**
  * Registers and manages custom code block rendering for note insight components
@@ -14,6 +26,7 @@ export class NoteInsightCodeBlockProcessor {
 	private app: App;
 	private plugin: Plugin;
 	private analysisService: BacklinkAnalysisService;
+	private instances: Map<string, CodeBlockInstance> = new Map();
 
 	constructor(app: App, plugin: Plugin, analysisService: BacklinkAnalysisService) {
 		this.app = app;
@@ -34,6 +47,16 @@ export class NoteInsightCodeBlockProcessor {
 			'note-insight-monthly',
 			this.processMonthlyBlock.bind(this)
 		);
+	}
+
+	/**
+	 * Cleanup all instances and event listeners
+	 */
+	cleanup(): void {
+		for (const [id, instance] of this.instances.entries()) {
+			this.app.workspace.offref(instance.eventRef);
+		}
+		this.instances.clear();
 	}
 
 	/**
@@ -91,6 +114,50 @@ export class NoteInsightCodeBlockProcessor {
 			// Set year bounds and data
 			tracker.setYearBounds(yearBounds);
 			tracker.updateData(noteInfo.yearlyData);
+
+			// Generate unique ID for this instance
+			const instanceId = `yearly-${ctx.sourcePath}-${Date.now()}-${Math.random()}`;
+
+			// Register file-open event listener to refresh component
+			const eventRef = this.app.workspace.on('file-open', (openedFile) => {
+				if (openedFile && openedFile.path === ctx.sourcePath) {
+					// Re-analyze the note and update the component
+					const updatedNoteInfo = this.analysisService.analyzeNoteByPath(notePath);
+					if (updatedNoteInfo && updatedNoteInfo.yearlyData) {
+						const updatedFile = this.app.vault.getAbstractFileByPath(notePath);
+						if (updatedFile) {
+							const updatedYearBounds = this.analysisService.getYearBounds(updatedFile as TFile);
+							tracker.setYearBounds(updatedYearBounds);
+							tracker.updateData(updatedNoteInfo.yearlyData);
+						}
+					}
+				}
+			});
+
+			// Register the event with the plugin for proper cleanup
+			this.plugin.registerEvent(eventRef);
+
+			// Store instance for cleanup
+			this.instances.set(instanceId, {
+				component: tracker,
+				notePath,
+				containerFilePath: ctx.sourcePath,
+				eventRef,
+				type: 'yearly',
+				ctx
+			});
+
+			// Register cleanup when section is unloaded
+			const renderChild = new MarkdownRenderChild(container);
+			renderChild.onunload = () => {
+				const instance = this.instances.get(instanceId);
+				if (instance) {
+					this.app.workspace.offref(instance.eventRef);
+					this.instances.delete(instanceId);
+				}
+			};
+			ctx.addChild(renderChild);
+
 		} catch (error) {
 			console.error('Error processing note-insight-yearly block:', error);
 			el.createEl('div', {
@@ -154,6 +221,53 @@ export class NoteInsightCodeBlockProcessor {
 			// Set month bounds and data
 			tracker.setMonthBounds(monthBounds);
 			tracker.updateData(monthlyData);
+
+			// Generate unique ID for this instance
+			const instanceId = `monthly-${ctx.sourcePath}-${Date.now()}-${Math.random()}`;
+
+			// Register file-open event listener to refresh component
+			const eventRef = this.app.workspace.on('file-open', (openedFile) => {
+				if (openedFile && openedFile.path === ctx.sourcePath) {
+					// Re-analyze the note and update the component
+					const updatedFile = this.app.vault.getAbstractFileByPath(notePath);
+					if (updatedFile) {
+						// Get the currently displayed month/year from the component
+						const { month, year } = tracker.getCurrentMonth();
+						
+						// Get updated monthly data for the current view
+						const updatedMonthlyData = this.analysisService.getMonthlyData(updatedFile as TFile, month, year);
+						const updatedMonthBounds = this.analysisService.getMonthBounds(updatedFile as TFile);
+						
+						tracker.setMonthBounds(updatedMonthBounds);
+						tracker.updateData(updatedMonthlyData);
+					}
+				}
+			});
+
+			// Register the event with the plugin for proper cleanup
+			this.plugin.registerEvent(eventRef);
+
+			// Store instance for cleanup
+			this.instances.set(instanceId, {
+				component: tracker,
+				notePath,
+				containerFilePath: ctx.sourcePath,
+				eventRef,
+				type: 'monthly',
+				ctx
+			});
+
+			// Register cleanup when section is unloaded
+			const renderChild = new MarkdownRenderChild(container);
+			renderChild.onunload = () => {
+				const instance = this.instances.get(instanceId);
+				if (instance) {
+					this.app.workspace.offref(instance.eventRef);
+					this.instances.delete(instanceId);
+				}
+			};
+			ctx.addChild(renderChild);
+
 		} catch (error) {
 			console.error('Error processing note-insight-monthly block:', error);
 			el.createEl('div', {

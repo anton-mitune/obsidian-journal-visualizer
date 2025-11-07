@@ -18,6 +18,8 @@
 
 **Note Insights View** - A custom Obsidian view panel that displays analytical information about the currently active note, shown in the right sidebar.
 
+**Note Insight Component** - A modular UI element that provides specific insights or analytics about the one or more notes (e.g., backlink counts, yearly tracker, monthly tracker). They can be rendered within the Note Insights View, or embed to notes using code blocks with a specific synthax.
+
 **Active Note** - The note currently being viewed/edited in the Obsidian workspace.
 
 **Resolved Links** - Obsidian's internal tracking of all links between notes, accessible via `app.metadataCache.resolvedLinks`. Includes count information for multiple links between the same files.
