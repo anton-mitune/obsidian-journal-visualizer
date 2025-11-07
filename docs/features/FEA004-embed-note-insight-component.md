@@ -46,6 +46,35 @@
 - WHEN I add a backlink to Note A from a daily note
 - THEN both tracker components (in markdown and canvas) update to show the new count
 
+### Requirement 3 - Persistent period selection
+**User Story:** As a note author, I want embedded note insight components to remember my last selected period across Obsidian restarts or active note or canvas change, so that I don't have to reconfigure them each time I open Obsidian or the component's container.
+**Example 1:**
+- GIVEN that I have embedded a yearly tracker for Note A in note B
+- AND the yearly tracker is set to year 2024
+- AND current year is 2025
+- WHEN I close Obsidian and reopen it
+- AND open note B
+- THEN the yearly tracker still shows year 2024 as the selected year
+**Example 2 for independant instances:**
+- GIVEN that I have embedded two yearly trackers for Note A in note B
+- AND the first yearly tracker is set to year 2023
+- AND the second yearly tracker is set to year 2024
+- WHEN I close Obsidian and reopen it
+- AND open note B
+- THEN the first yearly tracker shows year 2023 as the selected year
+- AND the second yearly tracker shows year 2024 as the selected year
+
+## Codeblock Format Specification
+
+```note-insight-yearly
+notePath: Vault/Path/to/SelectedNote.md
+selectedYear: 2024
+```
+
+```note-insight-monthly
+notePath: Vault/Path/to/SelectedNote.md
+selectedMonth: 2024-03
+```
 
 ## Design
 
@@ -70,6 +99,8 @@ The implementation uses custom markdown code blocks (e.g., ```note-insight-yearl
 
 3. **Component Integration**: Reuse existing `YearlyTrackerComponent` and `MonthlyTrackerComponent` without modification, preserving all interactive features (navigation, hover tooltips, etc.)
 
+4. **State Persistence**: Implemented via codeblock property.
+
 **Refresh Strategy:**
 - **Trigger**: When Obsidian's metadata cache resolves link changes (via `metadata-cache:resolved` event)
 - **Detection**: Each code block processor checks if the event affects its watched note's backlinks
@@ -93,6 +124,7 @@ The implementation uses custom markdown code blocks (e.g., ```note-insight-yearl
 4. Code block is inserted at cursor position:
 ```note-insight-monthly
 notePath: Vault/Path/to/SelectedNote.md
+selectedMonth: 2024-03
 ```
 5. Component renders immediately with current backlink data
 6. When user adds/removes backlinks to SelectedNote.md from any note, all visible tracker components for that note update automatically within seconds (as per obsidian's metadata cache refresh rate)
@@ -109,12 +141,13 @@ notePath: Vault/Path/to/SelectedNote.md
 - Code block format:
 ```note-insight-[yearly|monthly]
 notePath: [note-path]
+selectedYear: [optional-initial-year]
 ```
 - Editor integration using `editor-menu` events for consistent behavior
 - Each processor stores: component instance, watched note path, event listener reference
 - Event listener checks if metadata change affects the watched note's incoming links
 - Use `MarkdownPostProcessorContext` for cleanup detection
-- No command palette registration - context menu only
+- Store the selected period in the processor instance for state persistence
 
 **known Limitations:**
 - Update frequency is bounded by Obsidian's metadata cache refresh rate (typically 1-3 seconds after file save)
@@ -142,3 +175,4 @@ notePath: [note-path]
 
 - [Canvas Context Menu Integration Guide](../references/canvas-context-menu-integration.md) - Technical documentation for adding custom canvas context menus
 - [Canvas Event Research](../references/canvas-event-research/) - Debugging examples and source code research
+- node_modules/obsidian/obsidian.d.ts - Obsidian TypeScript definitions for plugin APIs
