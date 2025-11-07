@@ -635,7 +635,7 @@
 
 /* Monthly tracker intensity colors - same as yearly but reusable */
 .monthly-tracker-square-intensity-0 {
-    background-color: var(--background-secondary);
+    background-color: var(--background-secondary-alt);
 }
 
 .monthly-tracker-square-intensity-0 .monthly-tracker-square-day {
@@ -643,23 +643,23 @@
 }
 
 .monthly-tracker-square-intensity-1 {
-    background-color: var(--color-green-rgba);
+    background-color: color-mix(in srgb, var(--color-accent) 20%, var(--background-secondary-alt));
 }
 
 .monthly-tracker-square-intensity-2 {
-    background-color: color-mix(in srgb, var(--color-green) 40%, transparent);
+    background-color: color-mix(in srgb, var(--color-accent) 40%, var(--background-secondary-alt));
 }
 
 .monthly-tracker-square-intensity-3 {
-    background-color: color-mix(in srgb, var(--color-green) 65%, transparent);
+    background-color: color-mix(in srgb, var(--color-accent) 65%, var(--background-secondary-alt));
 }
 
 .monthly-tracker-square-intensity-4 {
-    background-color: var(--color-green);
+    background-color: var(--color-accent);
 }
 
 .monthly-tracker-square-intensity-4 .monthly-tracker-square-day {
-    color: white;
+    color: var(--text-on-accent);
 }
 
 .monthly-tracker-legend {

@@ -1,5 +1,5 @@
 ## Ideation
-- adds a new component to the *note insight* panel 
+- adds a new note insight component that displays a monthly tracker of backlinks from daily notes to the active note
 - it should display a monthly tracker in same fashion as yearly tracker for a selected month made in FEA002
 - users should be able to navigate between different months to see historical monthly tracking data
 
@@ -32,6 +32,7 @@
 - the monthly tracker state is completely independent from the yearly tracker state
 - month navigation can cross year boundaries (e.g., December 2023 → January 2024)
 - the monthly tracker operates independently from the yearly tracker (can show different months/years)
+- the colors used for highlight should rely exclusively on Obsidian theme variables to ensure proper theming support
 
 ## Design
 

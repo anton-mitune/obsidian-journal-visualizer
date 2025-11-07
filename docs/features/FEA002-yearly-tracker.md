@@ -1,7 +1,7 @@
 Version: 3.0
 
 ## Ideation
-- adds a new component to the *note insight* panel 
+- adds a new note insight component that displays a yearly tracker of backlinks from daily notes to the active note
 - it should display a yearly tracker, git tracker style, or anilist tracker style, showing which days in a selected year the active note was linked from a daily note
 - users should be able to navigate between different years to see historical tracking data
 - it should display a monthly tracker in same fashion as yearly tracker.
@@ -30,6 +30,7 @@ Version: 3.0
 - the intensity scale is linear, with 1 backlink being the lightest color and the maximum backlinks in a single day being the darkest color
 - the shade amplitude is capped at a reasonable maximum (e.g., 5 backlinks) to avoid overly dark squares
 - when switching years, the tracker should maintain the same visual style and hover functionality
+- the colors used for highlight should rely exclusively on Obsidian theme variables to ensure proper theming support
 
 
 ## Design
