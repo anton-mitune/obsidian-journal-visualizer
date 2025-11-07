@@ -2,6 +2,22 @@ import { App, MarkdownPostProcessorContext, Plugin, TFile, EventRef, MarkdownRen
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { YearlyTrackerComponent } from '../ui/yearly-tracker-component';
 import { MonthlyTrackerComponent } from '../ui/monthly-tracker-component';
+import { UserNotifier } from '../utils/user-notifier';
+import { CanvasUpdater } from '../utils/canvas-updater';
+import { NoteUpdater } from '../utils/note-updater';
+
+/**
+ * Parsed code block configuration
+ */
+interface YearlyCodeBlockConfig {
+	notePath: string;
+	selectedYear?: number;
+}
+
+interface MonthlyCodeBlockConfig {
+	notePath: string;
+	selectedMonth?: string; // Format: YYYY-MM
+}
 
 /**
  * Metadata for tracking a rendered code block and its refresh lifecycle
@@ -12,6 +28,9 @@ interface CodeBlockInstance {
 	eventRef: EventRef;
 	type: 'yearly' | 'monthly';
 	ctx: MarkdownPostProcessorContext;
+	el: HTMLElement; // The original code block element
+	lastKnownPeriod: number | string; // year number for yearly, "YYYY-MM" for monthly
+	isUpdatingCodeblock: boolean; // Flag to prevent infinite loops
 }
 
 /**
@@ -26,11 +45,17 @@ export class NoteInsightCodeBlockProcessor {
 	private plugin: Plugin;
 	private analysisService: BacklinkAnalysisService;
 	private instances: Map<string, CodeBlockInstance> = new Map();
+	private userNotifier: UserNotifier;
+	private canvasUpdater: CanvasUpdater;
+	private noteUpdater: NoteUpdater;
 
 	constructor(app: App, plugin: Plugin, analysisService: BacklinkAnalysisService) {
 		this.app = app;
 		this.plugin = plugin;
 		this.analysisService = analysisService;
+		this.userNotifier = new UserNotifier();
+		this.canvasUpdater = new CanvasUpdater(app);
+		this.noteUpdater = new NoteUpdater(app);
 	}
 
 	/**
@@ -67,15 +92,17 @@ export class NoteInsightCodeBlockProcessor {
 		ctx: MarkdownPostProcessorContext
 	): Promise<void> {
 		try {
-			// Parse the notePath from the code block
-			const notePath = this.parseNotePath(source);
-			if (!notePath) {
+			// Parse configuration from the code block
+			const config = this.parseYearlyConfig(source);
+			if (!config) {
 				el.createEl('div', {
 					text: 'Error: notePath not specified',
 					cls: 'note-insight-error'
 				});
 				return;
 			}
+
+			const { notePath, selectedYear } = config;
 
 			// Get the file
 			const file = this.app.vault.getAbstractFileByPath(notePath);
@@ -100,25 +127,37 @@ export class NoteInsightCodeBlockProcessor {
 			// Get year bounds
 			const yearBounds = this.analysisService.getYearBounds(file as any);
 
+			// Generate unique ID for this instance
+			const instanceId = `yearly-${ctx.sourcePath}-${Date.now()}-${Math.random()}`;
+
 			// Create container for the component
 			const container = el.createEl('div', { cls: 'note-insight-code-block yearly' });
 			
 			// Add title
 			container.createEl('h4', { text: noteInfo.noteTitle, cls: 'note-insight-title' });
 
-			// Create yearly tracker component
+			// Create yearly tracker component with callback
 			const trackerContainer = container.createEl('div', { cls: 'yearly-tracker-wrapper' });
-			const tracker = new YearlyTrackerComponent(trackerContainer);
+			const tracker = new YearlyTrackerComponent(trackerContainer, (year: number) => {
+				// User changed the year - update the codeblock
+				this.updateCodeBlockSource(ctx, instanceId, year);
+			});
 			
 			// Set year bounds and data
 			tracker.setYearBounds(yearBounds);
 			tracker.updateData(noteInfo.yearlyData);
 
-			// Generate unique ID for this instance
-			const instanceId = `yearly-${ctx.sourcePath}-${Date.now()}-${Math.random()}`;
+			// Set the selected year if provided in config
+			const initialYear = selectedYear ?? new Date().getFullYear();
+			tracker.setCurrentYear(initialYear);
 
 			// Register metadata-cache:resolved event listener to refresh component when watched note's backlinks change
 			const eventRef = this.app.metadataCache.on('resolved', () => {
+				const instance = this.instances.get(instanceId);
+				if (!instance || instance.isUpdatingCodeblock) {
+					return; // Skip if we're updating the codeblock
+				}
+
 				// Re-analyze the watched note and update the component
 				const updatedNoteInfo = this.analysisService.analyzeNoteByPath(notePath);
 				if (updatedNoteInfo && updatedNoteInfo.yearlyData) {
@@ -140,7 +179,10 @@ export class NoteInsightCodeBlockProcessor {
 				notePath,
 				eventRef,
 				type: 'yearly',
-				ctx
+				ctx,
+				el,
+				lastKnownPeriod: initialYear,
+				isUpdatingCodeblock: false
 			});
 
 			// Register cleanup when section is unloaded
@@ -172,15 +214,17 @@ export class NoteInsightCodeBlockProcessor {
 		ctx: MarkdownPostProcessorContext
 	): Promise<void> {
 		try {
-			// Parse the notePath from the code block
-			const notePath = this.parseNotePath(source);
-			if (!notePath) {
+			// Parse configuration from the code block
+			const config = this.parseMonthlyConfig(source);
+			if (!config) {
 				el.createEl('div', {
 					text: 'Error: notePath not specified',
 					cls: 'note-insight-error'
 				});
 				return;
 			}
+
+			const { notePath, selectedMonth } = config;
 
 			// Get the file
 			const file = this.app.vault.getAbstractFileByPath(notePath);
@@ -192,16 +236,28 @@ export class NoteInsightCodeBlockProcessor {
 				return;
 			}
 
-			// Get current month/year for initial display
-			const now = new Date();
-			const currentMonth = now.getMonth();
-			const currentYear = now.getFullYear();
+			// Parse selectedMonth or use current month
+			let initialMonth: number;
+			let initialYear: number;
+			
+			if (selectedMonth) {
+				const [yearStr, monthStr] = selectedMonth.split('-');
+				initialYear = parseInt(yearStr, 10);
+				initialMonth = parseInt(monthStr, 10) - 1; // Month is 0-indexed
+			} else {
+				const now = new Date();
+				initialMonth = now.getMonth();
+				initialYear = now.getFullYear();
+			}
 
 			// Get monthly data
-			const monthlyData = this.analysisService.getMonthlyData(file as any, currentMonth, currentYear);
+			const monthlyData = this.analysisService.getMonthlyData(file as any, initialMonth, initialYear);
 			
 			// Get month bounds
 			const monthBounds = this.analysisService.getMonthBounds(file as any);
+
+			// Generate unique ID for this instance
+			const instanceId = `monthly-${ctx.sourcePath}-${Date.now()}-${Math.random()}`;
 
 			// Create container for the component
 			const container = el.createEl('div', { cls: 'note-insight-code-block monthly' });
@@ -210,19 +266,26 @@ export class NoteInsightCodeBlockProcessor {
 			const noteTitle = file.name.replace(/\.md$/, '');
 			container.createEl('h4', { text: noteTitle, cls: 'note-insight-title' });
 
-			// Create monthly tracker component
+			// Create monthly tracker component with callback
 			const trackerContainer = container.createEl('div', { cls: 'monthly-tracker-wrapper' });
-			const tracker = new MonthlyTrackerComponent(trackerContainer);
+			const tracker = new MonthlyTrackerComponent(trackerContainer, (month: number, year: number) => {
+				// User changed the month - update the codeblock
+				const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+				this.updateCodeBlockSource(ctx, instanceId, monthStr);
+			});
 			
 			// Set month bounds and data
 			tracker.setMonthBounds(monthBounds);
 			tracker.updateData(monthlyData);
-
-			// Generate unique ID for this instance
-			const instanceId = `monthly-${ctx.sourcePath}-${Date.now()}-${Math.random()}`;
+			tracker.setCurrentMonth(initialMonth, initialYear);
 
 			// Register metadata-cache:resolved event listener to refresh component when watched note's backlinks change
 			const eventRef = this.app.metadataCache.on('resolved', () => {
+				const instance = this.instances.get(instanceId);
+				if (!instance || instance.isUpdatingCodeblock) {
+					return; // Skip if we're updating the codeblock
+				}
+
 				// Re-analyze the watched note and update the component
 				const updatedFile = this.app.vault.getAbstractFileByPath(notePath);
 				if (updatedFile) {
@@ -242,12 +305,16 @@ export class NoteInsightCodeBlockProcessor {
 			this.plugin.registerEvent(eventRef);
 
 			// Store instance for cleanup
+			const initialMonthStr = `${initialYear}-${String(initialMonth + 1).padStart(2, '0')}`;
 			this.instances.set(instanceId, {
 				component: tracker,
 				notePath,
 				eventRef,
 				type: 'monthly',
-				ctx
+				ctx,
+				el,
+				lastKnownPeriod: initialMonthStr,
+				isUpdatingCodeblock: false
 			});
 
 			// Register cleanup when section is unloaded
@@ -284,5 +351,171 @@ export class NoteInsightCodeBlockProcessor {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Parse yearly code block configuration
+	 * Expected format:
+	 * notePath: Vault/Path/to/Note.md
+	 * selectedYear: 2024
+	 */
+	private parseYearlyConfig(source: string): YearlyCodeBlockConfig | null {
+		const lines = source.trim().split('\n');
+		let notePath: string | null = null;
+		let selectedYear: number | undefined = undefined;
+
+		for (const line of lines) {
+			const trimmedLine = line.trim();
+			if (trimmedLine.startsWith('notePath:')) {
+				notePath = trimmedLine.substring('notePath:'.length).trim();
+			} else if (trimmedLine.startsWith('selectedYear:')) {
+				const yearStr = trimmedLine.substring('selectedYear:'.length).trim();
+				const year = parseInt(yearStr, 10);
+				if (!isNaN(year)) {
+					selectedYear = year;
+				}
+			}
+		}
+
+		if (!notePath) {
+			return null;
+		}
+
+		return { notePath, selectedYear };
+	}
+
+	/**
+	 * Parse monthly code block configuration
+	 * Expected format:
+	 * notePath: Vault/Path/to/Note.md
+	 * selectedMonth: 2024-03
+	 */
+	private parseMonthlyConfig(source: string): MonthlyCodeBlockConfig | null {
+		const lines = source.trim().split('\n');
+		let notePath: string | null = null;
+		let selectedMonth: string | undefined = undefined;
+
+		for (const line of lines) {
+			const trimmedLine = line.trim();
+			if (trimmedLine.startsWith('notePath:')) {
+				notePath = trimmedLine.substring('notePath:'.length).trim();
+			} else if (trimmedLine.startsWith('selectedMonth:')) {
+				selectedMonth = trimmedLine.substring('selectedMonth:'.length).trim();
+			}
+		}
+
+		if (!notePath) {
+			return null;
+		}
+
+		return { notePath, selectedMonth };
+	}
+
+	/**
+	 * Update the code block source in the file to persist period selection
+	 */
+	private async updateCodeBlockSource(
+		ctx: MarkdownPostProcessorContext,
+		instanceId: string,
+		newPeriod: number | string
+	): Promise<void> {
+		console.log('[updateCodeBlockSource] Called with:', { instanceId, newPeriod, sourcePath: ctx.sourcePath });
+		
+		const instance = this.instances.get(instanceId);
+		if (!instance || instance.isUpdatingCodeblock) {
+			console.log('[updateCodeBlockSource] Skipping - instance not found or already updating');
+			return; // Prevent infinite loops
+		}
+
+		// Check if period actually changed
+		if (instance.lastKnownPeriod === newPeriod) {
+			console.log('[updateCodeBlockSource] Skipping - period unchanged');
+			return; // No change needed
+		}
+
+		// Set flag to prevent infinite loops
+		instance.isUpdatingCodeblock = true;
+
+		try {
+			// Empty sourcePath indicates we're in a canvas text node
+			if (!ctx.sourcePath || ctx.sourcePath === '') {
+				console.log('[updateCodeBlockSource] Empty sourcePath - attempting canvas update');
+				await this.updateCanvasNodeCodeBlock(instance, newPeriod);
+			} else {
+				// Markdown file update
+				console.log('[updateCodeBlockSource] Updating markdown file');
+				await this.updateMarkdownFileCodeBlock(ctx, instance, newPeriod);
+			}
+		} finally {
+			// Clear flag after a short delay to allow file processing to complete
+			setTimeout(() => {
+				instance.isUpdatingCodeblock = false;
+			}, 100);
+		}
+	}
+
+	/**
+	 * Update code block in a canvas text node
+	 */
+	private async updateCanvasNodeCodeBlock(
+		instance: CodeBlockInstance,
+		newPeriod: number | string
+	): Promise<void> {
+		const result = await this.canvasUpdater.updateCodeblock({
+			notePath: instance.notePath,
+			trackerType: instance.type,
+			newPeriod
+		});
+
+		if (result.success) {
+			// Notify user if duplicates were found
+			if (result.updatedNodeCount > 1) {
+				this.userNotifier.notifyDuplicateCodeblocks(
+					instance.type,
+					instance.notePath,
+					result.updatedNodeCount,
+					'canvas'
+				);
+			}
+			
+			instance.lastKnownPeriod = newPeriod;
+		} else {
+			console.error('[updateCanvasNodeCodeBlock] Update failed:', result.error);
+		}
+	}
+
+	/**
+	 * Update code block in a markdown file
+	 */
+	private async updateMarkdownFileCodeBlock(
+		ctx: MarkdownPostProcessorContext,
+		instance: CodeBlockInstance,
+		newPeriod: number | string
+	): Promise<void> {
+		const sectionInfo = ctx.getSectionInfo(instance.el);
+		
+		const result = await this.noteUpdater.updateCodeblock({
+			sourcePath: ctx.sourcePath,
+			notePath: instance.notePath,
+			trackerType: instance.type,
+			newPeriod,
+			sectionInfo
+		});
+
+		if (result.success) {
+			// Notify user if duplicates were found
+			if (result.updatedCodeblockCount > 1) {
+				this.userNotifier.notifyDuplicateCodeblocks(
+					instance.type,
+					instance.notePath,
+					result.updatedCodeblockCount,
+					'note'
+				);
+			}
+			
+			instance.lastKnownPeriod = newPeriod;
+		} else {
+			console.error('[updateMarkdownFileCodeBlock] Update failed:', result.error);
+		}
 	}
 }
