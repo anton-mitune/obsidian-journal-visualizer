@@ -1,19 +1,8 @@
-This document lists all the features currently specified.
+# Features Index
 
-- **FEA001**: Note Insights panel showing daily note backlink counts for current month
-- **FEA002**: Yearly tracker component in Note Insights panel showing days linked from daily notes
-
-
-Later
-- monthly view
-- note insight components as nodes in canvas view
-- bar charts and line graphs backlink occurence 
-- time tracker = breakdown du temps passé sur les notes sur une période
-- word cloud visualisation des notes les plus linkées
-- sleep time
-- corélation
-- stats sur les trackers
-	- occurence
-	- classement des tags
-	- weight tracker
-- settings page
+- [Component Capabilities Matrix](component-capabilities-matrix.md)
+- [FEA001: Note Insights Panel](FEA001-note-insight-panel.md)
+- [FEA002: Yearly Tracker Component](FEA002-yearly-tracker.md)
+- [FEA003: Monthly Tracker Component](FEA003-monthly-tracker.md)
+- [FEA004: Embed Note Insight Components](FEA004-embed-note-insight-component.md)
+- [FEA005: Backlink Counter Component](FEA005-backlink-count-tracker.md)

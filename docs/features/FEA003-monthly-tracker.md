@@ -59,7 +59,42 @@ Useful resources:
 - [Obsidian Views API](https://docs.obsidian.md/Plugins/Plugin+API)
 - [Obsidian guide to use react in a plugin](https://docs.obsidian.md/Plugins/Getting+started/Use+React+in+your+plugin)
 
-## Components and Interfaces
+## Classes and Interfaces
 - **MonthlyTrackerComponent**: A class that renders the monthly tracker UI in the Note Insights panel with month navigation capabilities.
 - **MonthBounds**: Interface for defining valid month range based on available daily note data
+
+## Where This Component Appears
+
+The Monthly Tracker component can be displayed in multiple contexts:
+
+### Note Insights Panel (FEA001)
+- Automatically appears in the right sidebar "Note insights" view
+- Shows data for the currently active note
+- Updates automatically when switching notes
+
+### Code Blocks in Markdown Notes (FEA004)
+- Can be embedded using `note-insight-monthly` code block type
+- Allows watching any note (not just the active note)
+- State (selected month/year) persists across sessions
+- Auto-updates when watched note's backlinks change
+
+**Code block syntax:**
+```note-insight-monthly
+notePath: path/to/note.md
+month: 2024-03
+```
+
+### Canvas Text Nodes (FEA004)
+- Same functionality as markdown code blocks
+- Embeddable in canvas text nodes using identical syntax
+- State persists in canvas JSON
+
+### Editor Context Menu (FEA004)
+- Can be inserted via "Add Monthly Tracker from Vault" context menu option
+- Opens note selector modal to choose note to watch
+- Inserts code block at cursor position
+
+For complete details on embedding and context menu usage, see [FEA004: Embed Note Insight Component](FEA004-embed-note-insight-component.md).
+
+For an overview of all components and their capabilities, see the [Component Capabilities Matrix](component-capabilities-matrix.md).
 

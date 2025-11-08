@@ -207,3 +207,39 @@ Adds "Add Counter from Vault" menu item:
 - **DateRange** (`src/types.ts`): Interface representing start/end dates
 - **NoteInsightCodeBlockProcessor** (`src/features/note-insight-code-block-processor.ts`): Code block rendering
 - **NoteInsightContextMenuManager** (`src/features/note-insight-context-menu-manager.ts`): Context menu integration
+
+## Where This Component Appears
+
+The Backlink Counter component can be displayed in multiple contexts:
+
+### Note Insights Panel (FEA001)
+- Automatically appears in the right sidebar "Note insights" view
+- Shows data for the currently active note
+- Updates automatically when switching notes
+- No state persistence (always defaults to "past 30 days")
+
+### Code Blocks in Markdown Notes (FEA004)
+- Can be embedded using `note-insight-counter` code block type
+- Allows watching any note (not just the active note)
+- State (selected period) persists across sessions
+- Auto-updates when watched note's backlinks change
+
+**Code block syntax:**
+```note-insight-counter
+notePath: path/to/note.md
+selectedPeriod: past-30-days
+```
+
+### Canvas Text Nodes (FEA004)
+- Same functionality as markdown code blocks
+- Embeddable in canvas text nodes using identical syntax
+- State persists in canvas JSON
+
+### Editor Context Menu (FEA004)
+- Can be inserted via "Add Counter from Vault" context menu option
+- Opens note selector modal to choose note to watch
+- Inserts code block at cursor position
+
+For complete details on embedding and context menu usage, see [FEA004: Embed Note Insight Component](FEA004-embed-note-insight-component.md).
+
+For an overview of all components and their capabilities, see the [Component Capabilities Matrix](component-capabilities-matrix.md).

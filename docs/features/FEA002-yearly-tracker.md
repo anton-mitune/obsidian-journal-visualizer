@@ -44,6 +44,41 @@ Useful ressources:
 - [Obsidian Views API](https://docs.obsidian.md/Plugins/Plugin+API)
 - [Obsidian guide to use react in a plugin](https://docs.obsidian.md/Plugins/Getting+started/Use+React+in+your+plugin)
 
-## Components and Interfaces
+## Classes and Interfaces
 - **YearlyTrackerComponent**: A class that renders the yearly tracker UI in the Note Insights panel with year navigation capabilities.
 - **YearNavigationControls**: Navigation interface for switching between years (previous/next buttons and/or year selector).
+
+## Where This Component Appears
+
+The Yearly Tracker component can be displayed in multiple contexts:
+
+### Note Insights Panel (FEA001)
+- Automatically appears in the right sidebar "Note insights" view
+- Shows data for the currently active note
+- Updates automatically when switching notes
+
+### Code Blocks in Markdown Notes (FEA004)
+- Can be embedded using `note-insight-yearly` code block type
+- Allows watching any note (not just the active note)
+- State (selected year) persists across sessions
+- Auto-updates when watched note's backlinks change
+
+**Code block syntax:**
+```note-insight-yearly
+notePath: path/to/note.md
+year: 2024
+```
+
+### Canvas Text Nodes (FEA004)
+- Same functionality as markdown code blocks
+- Embeddable in canvas text nodes using identical syntax
+- State persists in canvas JSON
+
+### Editor Context Menu (FEA004)
+- Can be inserted via "Add Yearly Tracker from Vault" context menu option
+- Opens note selector modal to choose note to watch
+- Inserts code block at cursor position
+
+For complete details on embedding and context menu usage, see [FEA004: Embed Note Insight Component](FEA004-embed-note-insight-component.md).
+
+For an overview of all components and their capabilities, see the [Component Capabilities Matrix](component-capabilities-matrix.md).

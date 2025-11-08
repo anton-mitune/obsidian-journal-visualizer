@@ -10,7 +10,11 @@
 ### Assumptions
 - Users work with both markdown notes and canvas text nodes
 - Note insight components can be added via editor context menus only (no command palette)
-- Each insight type has its own context menu option: "Add Yearly Tracker from Vault", "Add Monthly Tracker from Vault", etc.
+- Each component type has its own context menu option following the pattern: "Add [Component Name] from Vault"
+- All registered note insight components can be embedded using this infrastructure
+
+**Current Available Components:**
+See the [Component Capabilities Matrix](component-capabilities-matrix.md) for the full list of available components and their specific code block formats.
 
 ### Requirement 1 — Add note insight component to editors via context menu
 **User Story:** As a knowledge worker, I want to add note insight components from existing notes to my current editor context (markdown notes or canvas text nodes), so that I can visualize metadata and patterns directly where I'm working.
@@ -18,142 +22,157 @@
 **Example:**
 - GIVEN that I have a note with 2 backlinks from daily notes in 2025 AND I have a markdown editor or canvas text node editor active
 - WHEN I right-click in the editor to open the context menu
-- THEN I see options for "Add Yearly Tracker from Vault" and "Add Monthly Tracker from Vault"
+- THEN I see options for adding note insight components (e.g., "Add Yearly Tracker from Vault", "Add Monthly Tracker from Vault", "Add Backlink Counter from Vault")
 - WHEN I select one of these options
 - THEN I am prompted to select a source note via a note selector modal
 - WHEN I select the note
 - THEN the corresponding note insight code block is inserted at the cursor position, it is rendered into a note insight component displaying the insight data for that note exactly as it appears in the note insights panel
 
+**Note:** The specific components available depend on what's registered. See individual component feature documents for details on each component's behavior.
+
 ### Requirement 2 - Component refresh on backlink changes
 **User Story:** As a knowledge worker, I want the embedded note insight components to update automatically when the watched note's backlinks change, so that I always see current data without manual intervention.
 
 **Example 1 - Markdown notes:**
-- GIVEN that I have a note containing a yearly tracker code block for Note A
-- AND Note A currently has 2 backlinks from daily notes in current year
+- GIVEN that I have a note containing a component code block for Note A
+- AND Note A currently has 2 backlinks from daily notes
 - WHEN I open today's daily note and add a backlink to Note A
-- THEN the yearly tracker component updates to reflect the new backlink count (3 backlinks) within a few seconds
+- THEN the component updates to reflect the new backlink count (3 backlinks) within a few seconds
 
 **Example 2 - Canvas nodes:**
-- GIVEN that I have a canvas with a text node containing a yearly tracker code block for Note A
-- AND Note A currently has 2 backlinks from daily notes in current year
+- GIVEN that I have a canvas with a text node containing a component code block for Note A
+- AND Note A currently has 2 backlinks from daily notes
 - AND the canvas is open in pane A
 - WHEN I open today's daily note in pane B and add a backlink to Note A
-- THEN the yearly tracker component in the canvas updates to reflect the new backlink count (3 backlinks) within a few seconds
+- THEN the component in the canvas updates to reflect the new backlink count (3 backlinks) within a few seconds
 - This update happens regardless of whether I'm currently editing the text node or just viewing it
 
 **Example 3 - Multiple simultaneous views:**
-- GIVEN that I have both a markdown note and a canvas open, each containing a yearly tracker for Note A
+- GIVEN that I have both a markdown note and a canvas open, each containing a component for Note A
 - WHEN I add a backlink to Note A from a daily note
-- THEN both tracker components (in markdown and canvas) update to show the new count
+- THEN both components (in markdown and canvas) update to show the new count
 
-### Requirement 3 - Persistent period selection
-**User Story:** As a note author, I want embedded note insight components to remember my last selected period across Obsidian restarts or active note or canvas change, so that I don't have to reconfigure them each time I open Obsidian or the component's container.
+### Requirement 3 - Persistent component state
+**User Story:** As a note author, I want embedded note insight components to remember their configuration state (e.g., selected period, year, month) across Obsidian restarts or active note or canvas change, so that I don't have to reconfigure them each time I open Obsidian or the component's container.
+
 **Example 1:**
-- GIVEN that I have embedded a yearly tracker for Note A in note B
-- AND the yearly tracker is set to year 2024
+- GIVEN that I have embedded a component for Note A in note B
+- AND the component has a configurable state (e.g., selected year 2024)
 - AND current year is 2025
 - WHEN I close Obsidian and reopen it
 - AND open note B
-- THEN the yearly tracker still shows year 2024 as the selected year
-**Example 2 for independant instances:**
-- GIVEN that I have embedded two yearly trackers for Note A in note B
-- AND the first yearly tracker is set to year 2023
-- AND the second yearly tracker is set to year 2024
+- THEN the component still shows the previously selected state (year 2024)
+
+**Example 2 for independent instances:**
+- GIVEN that I have embedded two instances of the same component type for Note A in note B
+- AND the first instance is configured with state A (e.g., year 2023)
+- AND the second instance is configured with state B (e.g., year 2024)
 - WHEN I close Obsidian and reopen it
 - AND open note B
-- THEN the first yearly tracker shows year 2023 as the selected year
-- AND the second yearly tracker shows year 2024 as the selected year
+- THEN the first instance shows state A (year 2023)
+- AND the second instance shows state B (year 2024)
+
+**Note:** The specific state properties depend on the component type. See individual component features for details.
 
 ## Codeblock Format Specification
 
-```note-insight-yearly
-notePath: Vault/Path/to/SelectedNote.md
-selectedYear: 2024
+All note insight components follow a consistent code block format pattern:
+
+### Generic Format
+```note-insight-[type]
+notePath: path/to/watched/note.md
+[component-specific-state-properties]
 ```
 
-```note-insight-monthly
-notePath: Vault/Path/to/SelectedNote.md
-selectedMonth: 2024-03
-```
+**Common Properties:**
+- `notePath`: Path to the note being watched (required for all components)
+
+**State Properties:**
+Each component may have additional properties for persisting user configuration (e.g., `year`, `month`, `period`). These are documented in the individual component specifications.
 
 ## Design
 
 **Implementation Approach: Code Block Rendering with Metadata-Driven Refresh and Persistent State**
 
-The implementation uses custom markdown code blocks (e.g., ```note-insight-yearly) that render full interactive components within editors. Each component listens to metadata cache changes and refreshes when its watched note's backlinks are modified. Period selection is persisted directly to the codeblock content.
+The implementation provides a generic infrastructure for embedding any note insight component via custom markdown code blocks (e.g., ```note-insight-yearly, ```note-insight-monthly, ```note-insight-counter). Each component listens to metadata cache changes and refreshes when its watched note's backlinks are modified. Component-specific state is persisted directly to the code block content.
 
 ### Implementation Architecture
 
 #### 1. Code Block Processors (`NoteInsightCodeBlockProcessor`)
-Registers custom markdown processors for `note-insight-yearly` and `note-insight-monthly` that:
+Registers custom markdown processors for each component type (e.g., `note-insight-yearly`, `note-insight-monthly`, `note-insight-counter`) that:
 
-- **Parse Configuration**: Extract `notePath`, `selectedYear`, or `selectedMonth` from codeblock content
-- **Render Components**: Create and mount existing `YearlyTrackerComponent` or `MonthlyTrackerComponent` with full interactivity
+- **Parse Configuration**: Extract `notePath` and component-specific state properties from code block content
+- **Render Components**: Create and mount the appropriate component instance with full interactivity
 - **Auto-Refresh on Backlink Changes**: 
   - Register a `metadata-cache:resolved` event listener that monitors backlink changes
   - When the watched note's backlinks change, re-query backlink data via `BacklinkAnalysisService`
   - Call the component's `updateData()` method to refresh the visualization
-  - Use `isUpdatingCodeblock` flag to prevent refresh loops when updating codeblock content
-- **Period Selection Persistence**:
-  - Components pass a callback to notify the processor when the user changes the period (year or month)
-  - Processor updates the codeblock content in the file (markdown or canvas) to persist the selection
+  - Use `isUpdatingCodeblock` flag to prevent refresh loops when updating code block content
+- **Component State Persistence**:
+  - Components pass a callback to notify the processor when the user changes component state
+  - Processor updates the code block content in the file (markdown or canvas) to persist the state
 - **Lifecycle Management**:
   - Store component instance, watched note path, event listener, and DOM element references
-  - Use `MarkdownRenderChild` for proper cleanup when codeblock is removed from DOM
+  - Use `MarkdownRenderChild` for proper cleanup when code block is removed from DOM
   - Clean up event listeners and component instances on unload
 
 #### 2. State Persistence Strategy
 
-**Storage Mechanism**: Period selection is stored directly in the codeblock content as properties:
+**Storage Mechanism**: Component state is stored directly in the code block content as properties. The specific properties depend on the component type (see individual component specifications).
 
-```note-insight-yearly
-notePath: Vault/Path/to/Note.md
-selectedYear: 2024
+**Generic Example:**
+```note-insight-[type]
+notePath: path/to/note.md
+[state-property]: [value]
 ```
 
 **Update Flow**:
-1. User interacts with component (e.g., clicks year navigation)
-2. Component invokes callback with new period value
+1. User interacts with component (e.g., changes selected period/year/month)
+2. Component invokes callback with new state value
 3. Processor determines context (markdown file or canvas node)
 4. **For Markdown Files**:
    - Read file content via Vault API
-   - Locate codeblock using `ctx.getSectionInfo()`
-   - Update or insert period property
+   - Locate code block using `ctx.getSectionInfo()`
+   - Update or insert state property
    - Write modified content back to file
 5. **For Canvas Text Nodes**:
    - Detect canvas context via empty `ctx.sourcePath`
    - Access active canvas view and canvas file via workspace API
    - Parse canvas JSON
-   - Find matching node(s) by searching for `notePath` + codeblock type (e.g., `` ```note-insight-yearly ``)
-   - Update period property in node's text content
+   - Find matching node(s) by searching for `notePath` + code block type
+   - Update state property in node's text content
    - Save modified canvas JSON
 6. Set `isUpdatingCodeblock` flag during update to prevent metadata cache event from triggering refresh loop
 
 **Duplicate Handling**:
-- When multiple codeblocks of the same type watch the same note in the same note or canvas:
+- When multiple code blocks of the same type watch the same note in the same note or canvas:
   - All matching instances are updated simultaneously
-  - User receives a notification: `⚠️ Multiple yearly tracker's found for "Note Name" in this canvas. All 3 instances will be updated.`
+  - User receives a notification: `⚠️ Multiple [component name]'s found for "Note Name" in this [context]. All X instances will be updated.`
 
 **Infinite Loop Prevention**:
-- `isUpdatingCodeblock` flag prevents refresh during codeblock content updates
+- `isUpdatingCodeblock` flag prevents refresh during code block content updates
 - Flag is cleared after a 100ms delay to allow file processing to complete
 - Metadata cache events skip processing when flag is set
 
 #### 3. Editor Context Menu Integration (`NoteInsightContextMenuManager`)
-Adds insight options to editor context menus that:
+Adds component insertion options to editor context menus that:
 
 - Listen for `editor-menu` events to detect editor context menu openings
-- Add menu items: "Add Yearly Tracker from Vault" and "Add Monthly Tracker from Vault"
+- Add menu items for each registered component type (e.g., "Add Yearly Tracker from Vault", "Add Monthly Tracker from Vault", "Add Backlink Counter from Vault")
 - Present note selector modal when selected
 - Insert appropriate code block at cursor position with initial configuration
 - Work in both markdown editors and canvas text node editors
 
-#### 4. Component Integration
-Reuses existing `YearlyTrackerComponent` and `MonthlyTrackerComponent` without modification:
+**Component Registration:**
+Each component type is registered with the context menu manager, which generates the appropriate menu item and code block template. See individual component features for specific menu item labels and default configurations.
 
-- Components accept a callback in their constructor for period change notifications
+#### 4. Component Integration
+Reuses existing note insight components without modification:
+
+- Components accept a callback in their constructor for state change notifications
 - All interactive features preserved (navigation, hover tooltips, data visualization)
-- Components remain stateless - period selection managed by processor
+- Components remain stateless - state selection managed by processor
+- Each component implements the standard note insight component pattern (see [Adding Note Insight Components guide](../steering/adding-note-insight-components.md))
 
 #### 5. Shared Analysis Service (`BacklinkAnalysisService`)
 Centralized service providing note analysis data:
@@ -188,8 +207,8 @@ Centralized service providing note analysis data:
 
 **Node Identification**:
 - Searches canvas JSON nodes array for matching text nodes
-- Match criteria: node contains both the `notePath` AND the codeblock type marker (e.g., `` ```note-insight-yearly ``)
-- This ensures correct node is found even when multiple codeblocks watch the same note
+- Match criteria: node contains both the `notePath` AND the code block type marker
+- This ensures correct node is found even when multiple code blocks watch the same note
 
 **Update Process**:
 1. Parse canvas JSON from canvas file
@@ -200,18 +219,14 @@ Centralized service providing note analysis data:
 
 ### User Workflow
 
-1. User right-clicks in an editor (markdown or canvas text node) → selects "Add Monthly Tracker from Vault"
+1. User right-clicks in an editor (markdown or canvas text node) → selects a component insertion option (e.g., "Add Monthly Tracker from Vault")
 2. Note selector modal appears (similar to native Obsidian file picker)
 3. User selects source note
-4. Code block is inserted at cursor position with current period as default:
-```note-insight-monthly
-notePath: Vault/Path/to/SelectedNote.md
-selectedMonth: 2025-11
-```
+4. Code block is inserted at cursor position with default configuration (specific format depends on component type)
 5. Component renders immediately with current backlink data
-6. User can navigate to different periods - selection is saved to codeblock automatically
-7. When user adds/removes backlinks to the watched note from any note, all visible tracker components for that note update automatically
-8. Period selection persists across Obsidian restarts and file/canvas changes
+6. User can interact with component (e.g., navigate to different periods) - state changes are saved to code block automatically
+7. When user adds/removes backlinks to the watched note from any note, all visible instances of that component for that note update automatically
+8. Component state persists across Obsidian restarts and file/canvas changes
 
 ### Technical Rationale
 
@@ -227,12 +242,12 @@ selectedMonth: 2025-11
 ### Known Limitations
 
 - Update frequency is bounded by Obsidian's metadata cache refresh rate (typically 1-3 seconds after file save)
-- Multiple trackers of the same type watching the same note in the same file/canvas will synchronize their period selection (this is intentional to maintain consistency)
+- Multiple instances of the same component type watching the same note in the same file/canvas will synchronize their state (this is intentional to maintain consistency)
 - Canvas text node updates rely on the canvas being the active view in the most recent leaf
 
-## Components and Interfaces
+## Classes and Interfaces
 
-**Core Components:**
+**Core Classes:**
 
 1. **BacklinkAnalysisService** (`src/services/backlink-analysis-service.ts`)
    - Centralized service providing note analysis data to code block processors
@@ -241,38 +256,41 @@ selectedMonth: 2025-11
    - Provides consistent results across all components
 
 2. **NoteInsightCodeBlockProcessor** (`src/features/note-insight-code-block-processor.ts`)
-   - Registers and manages custom code block rendering for `note-insight-yearly` and `note-insight-monthly`
-   - Orchestrates component rendering, refresh logic, and period selection persistence
+   - Registers and manages custom code block rendering for all note insight component types
+   - Orchestrates component rendering, refresh logic, and state persistence
    - Delegates update operations to specialized utility classes
    - Manages component lifecycle and event listeners
 
 3. **UserNotifier** (`src/utils/user-notifier.ts`)
-   - Handles user notifications for duplicate codeblock detection
+   - Handles user notifications for duplicate code block detection
    - Provides consistent notification messages across canvas and note contexts
    - Centralizes user feedback logic
 
 4. **CanvasUpdater** (`src/utils/canvas-updater.ts`)
-   - Specialized class for updating codeblocks in canvas text nodes
+   - Specialized class for updating code blocks in canvas text nodes
    - Accesses canvas data via workspace API
    - Finds and updates matching nodes by content
    - Handles canvas JSON parsing and modification
+   - Supports all registered component types
 
 5. **NoteUpdater** (`src/utils/note-updater.ts`)
-   - Specialized class for updating codeblocks in markdown files
-   - Scans entire file for matching codeblocks
+   - Specialized class for updating code blocks in markdown files
+   - Scans entire file for matching code blocks
    - Handles line-based text manipulation
    - Manages range adjustments when inserting new properties
+   - Supports all registered component types
 
 6. **NoteInsightContextMenuManager** (`src/features/note-insight-context-menu-manager.ts`)
-   - Integrates insight options into editor context menus
-   - Handles note selection and codeblock insertion
+   - Integrates component insertion options into editor context menus
+   - Handles note selection and code block insertion
    - Works in both markdown editors and canvas text node editors
+   - Manages menu items for all registered component types
 
-**UI Components:**
-- **YearlyTrackerComponent** and **MonthlyTrackerComponent** (no modifications required)
-  - Reused from existing Note Insight View implementation
-  - Accept callbacks for period change notifications
-  - Remain stateless - period selection managed by processor
+**UI Classes:**
+All registered note insight components (no modifications required):
+- Accept callbacks for state change notifications
+- Remain stateless - state selection managed by processor
+- Follow the standard component architecture pattern
 
 **Architecture Benefits:**
 - **Separation of Concerns**: Update logic extracted from rendering logic into specialized classes
@@ -287,3 +305,12 @@ selectedMonth: 2025-11
 - [Canvas Context Menu Integration Guide](../references/canvas-context-menu-integration.md) - Technical documentation for adding custom canvas context menus
 - [Canvas Event Research](../references/canvas-event-research/) - Debugging examples and source code research
 - node_modules/obsidian/obsidian.d.ts - Obsidian TypeScript definitions for plugin APIs
+
+## Notes
+
+For the current list of available components and their capabilities, see the [Component Capabilities Matrix](component-capabilities-matrix.md).
+
+Individual component specifications:
+- [FEA002: Yearly Tracker](FEA002-yearly-tracker.md)
+- [FEA003: Monthly Tracker](FEA003-monthly-tracker.md)
+- [FEA005: Backlink Counter](FEA005-backlink-count-tracker.md)
