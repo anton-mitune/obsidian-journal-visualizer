@@ -74,6 +74,9 @@ export class ViewManager {
 				// If view exists, reveal it
 				this.app.workspace.revealLeaf(existingLeaf);
 				this.view = existingLeaf.view as NoteInsightsView;
+				
+				// Ensure analysis service is set (in case view was created before service was available)
+				this.view.setAnalysisService(this.analysisService);
 			} else {
 				// Wait for workspace to be ready
 				if (!this.app.workspace.layoutReady) {
@@ -131,6 +134,15 @@ export class ViewManager {
 			const existingLeaf = this.app.workspace.getLeavesOfType(NOTE_INSIGHTS_VIEW_TYPE)?.[0];
 			if (existingLeaf) {
 				this.view = existingLeaf.view as NoteInsightsView;
+				// Ensure analysis service is set
+				this.view.setAnalysisService(this.analysisService);
+				// Set callbacks if available
+				if (this.onYearChangeCallback) {
+					this.view.setOnYearChangeCallback(this.onYearChangeCallback);
+				}
+				if (this.onMonthChangeCallback) {
+					this.view.setOnMonthChangeCallback(this.onMonthChangeCallback);
+				}
 			}
 		}
 	}

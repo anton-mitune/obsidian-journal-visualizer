@@ -154,15 +154,28 @@ export class NoteInsightsView extends ItemView {
 			text: 'counter',
 			cls: 'note-insights-label'
 		});
-		// Create counter container
-		const counterContainer = counterSection.createEl('div', { cls: 'note-insights-backlink-counter' });
-		// Create counter component
-		this.backlinkCounter = new BacklinkCounterComponent(counterContainer, this.classifier);
-		// Get backlinks for current note and update
-		const activeFile = this.app.workspace.getActiveFile();
-		if (activeFile && this.analysisService) {
-			const backlinks = this.analysisService.getBacklinksForFile(activeFile);
-			this.backlinkCounter.updateData(backlinks);
+		
+		// Only create counter if we have analysisService
+		if (this.analysisService) {
+			// Create counter container
+			const counterContainer = counterSection.createEl('div', { cls: 'note-insights-backlink-counter' });
+			// Create counter component
+			this.backlinkCounter = new BacklinkCounterComponent(counterContainer, this.classifier);
+			// Get backlinks for current note and update
+			const activeFile = this.app.workspace.getActiveFile();
+			if (activeFile) {
+				const backlinks = this.analysisService.getBacklinksForFile(activeFile);
+				console.log('[NoteInsightsView] Counter - updating with backlinks:', backlinks.length);
+				this.backlinkCounter.updateData(backlinks);
+			} else {
+				console.warn('[NoteInsightsView] Counter - no active file');
+			}
+		} else {
+			console.error('[NoteInsightsView] Counter - analysisService is null! Cannot create counter.');
+			counterSection.createEl('div', {
+				text: 'Counter unavailable (service not initialized)',
+				cls: 'note-insights-error'
+			});
 		}
 
 		// Monthly tracker section
