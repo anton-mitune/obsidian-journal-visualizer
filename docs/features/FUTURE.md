@@ -1,5 +1,10 @@
 ## FEA004 - Embed Note Insight Component in Editor and Canvas Nodes
-### Requirement 3 — Slash command support for inserting note insight components
+
+### Requirement X - Persistent component configuration
+**User Story:** As a note author, I want any component, in insight view, or embedded in markdown or canvas, to remember its configuration (e.g., selected year for yearly tracker) across Obsidian restarts, so that I don't have to reconfigure it each time I open Obsidian.
+--> Where should I store this info? In component? in registry? in codeblock instance? in itemView instance? should I have component unique IDs mapped to note IDs?
+
+### Requirement X — Slash command support for inserting note insight components
 **User Story:** As a knowledge worker, I want to use an obsidian slash command in the editor to quickly insert note insight components from existing notes.
 **Example:**
 - GIVEN that I have a markdown editor or canvas text node editor active

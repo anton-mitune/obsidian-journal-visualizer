@@ -97,9 +97,6 @@ Registers custom markdown processors for `note-insight-yearly` and `note-insight
 - **Period Selection Persistence**:
   - Components pass a callback to notify the processor when the user changes the period (year or month)
   - Processor updates the codeblock content in the file (markdown or canvas) to persist the selection
-  - **Canvas detection**: Uses empty `sourcePath` as signal for canvas context, then accesses canvas file via `workspace.getMostRecentLeaf()`
-  - **Content-based node matching**: Finds the correct canvas node by matching both `notePath` and codeblock type
-  - **Duplicate detection**: Scans for multiple matching codeblocks and updates all instances, showing a user notification
 - **Lifecycle Management**:
   - Store component instance, watched note path, event listener, and DOM element references
   - Use `MarkdownRenderChild` for proper cleanup when codeblock is removed from DOM
@@ -108,11 +105,10 @@ Registers custom markdown processors for `note-insight-yearly` and `note-insight
 #### 2. State Persistence Strategy
 
 **Storage Mechanism**: Period selection is stored directly in the codeblock content as properties:
-```
+
 ```note-insight-yearly
 notePath: Vault/Path/to/Note.md
 selectedYear: 2024
-```
 ```
 
 **Update Flow**:
@@ -134,10 +130,9 @@ selectedYear: 2024
 6. Set `isUpdatingCodeblock` flag during update to prevent metadata cache event from triggering refresh loop
 
 **Duplicate Handling**:
-- When multiple codeblocks of the same type watch the same note in the same file/canvas:
+- When multiple codeblocks of the same type watch the same note in the same note or canvas:
   - All matching instances are updated simultaneously
   - User receives a notification: `⚠️ Multiple yearly tracker's found for "Note Name" in this canvas. All 3 instances will be updated.`
-  - This ensures consistent state across duplicates
 
 **Infinite Loop Prevention**:
 - `isUpdatingCodeblock` flag prevents refresh during codeblock content updates
