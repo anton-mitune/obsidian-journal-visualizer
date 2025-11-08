@@ -102,4 +102,11 @@ export class BacklinkAnalysisService {
 		const backlinks = this.getBacklinksForFile(file);
 		return this.dailyNoteClassifier.calculateMonthBounds(backlinks);
 	}
+
+	/**
+	 * Get the DailyNoteClassifier instance
+	 */
+	getClassifier(): DailyNoteClassifier {
+		return this.dailyNoteClassifier;
+	}
 }

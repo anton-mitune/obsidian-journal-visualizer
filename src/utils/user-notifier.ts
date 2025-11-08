@@ -8,12 +8,14 @@ export class UserNotifier {
 	 * Notify user about duplicate codeblocks being updated
 	 */
 	notifyDuplicateCodeblocks(
-		trackerType: 'yearly' | 'monthly',
+		trackerType: 'yearly' | 'monthly' | 'counter',
 		notePath: string,
 		count: number,
 		context: 'canvas' | 'note'
 	): void {
-		const trackerTypeName = trackerType === 'yearly' ? 'yearly tracker' : 'monthly tracker';
+		const trackerTypeName = trackerType === 'yearly' ? 'yearly tracker' : 
+		                         trackerType === 'monthly' ? 'monthly tracker' :
+		                         'counter';
 		const noteName = notePath.split('/').pop()?.replace('.md', '') || notePath;
 		const contextName = context === 'canvas' ? 'this canvas' : 'this note';
 		

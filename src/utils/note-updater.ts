@@ -1,4 +1,5 @@
 import { App, TFile, MarkdownPostProcessorContext } from 'obsidian';
+import { TimePeriod } from '../types';
 
 /**
  * Configuration for updating a note codeblock
@@ -6,8 +7,8 @@ import { App, TFile, MarkdownPostProcessorContext } from 'obsidian';
 export interface NoteCodeblockUpdate {
 	sourcePath: string;
 	notePath: string;
-	trackerType: 'yearly' | 'monthly';
-	newPeriod: number | string;
+	trackerType: 'yearly' | 'monthly' | 'counter';
+	newPeriod: number | string | TimePeriod;
 	sectionInfo: { lineStart: number; lineEnd: number } | null;
 }
 
@@ -41,11 +42,11 @@ export class NoteUpdater {
 			const content = await this.app.vault.read(file);
 			const lines = content.split('\n');
 			
-			// Detect all matching codeblocks by scanning the entire file
-			const codeblockType = update.trackerType === 'yearly' ? 'note-insight-yearly' : 'note-insight-monthly';
-			const duplicateRanges = this.findMatchingCodeblocks(lines, codeblockType, update.notePath);
-			
-			if (duplicateRanges.length === 0) {
+		// Detect all matching codeblocks by scanning the entire file
+		const codeblockType = update.trackerType === 'yearly' ? 'note-insight-yearly' : 
+		                       update.trackerType === 'monthly' ? 'note-insight-monthly' :
+		                       'note-insight-counter';
+		const duplicateRanges = this.findMatchingCodeblocks(lines, codeblockType, update.notePath);			if (duplicateRanges.length === 0) {
 				return { success: false, updatedCodeblockCount: 0, error: 'No matching codeblocks found' };
 			}
 
@@ -121,6 +122,11 @@ export class NoteUpdater {
 				updatedLines = true;
 				console.log('[NoteUpdater] Updated selectedMonth at line', i);
 				break;
+			} else if (update.trackerType === 'counter' && line.trim().startsWith('selectedPeriod:')) {
+				lines[i] = `selectedPeriod: ${update.newPeriod}`;
+				updatedLines = true;
+				console.log('[NoteUpdater] Updated selectedPeriod at line', i);
+				break;
 			}
 		}
 
@@ -128,7 +134,9 @@ export class NoteUpdater {
 		if (!updatedLines) {
 			for (let i = range.start; i <= range.end && i < lines.length; i++) {
 				if (lines[i].trim().startsWith('notePath:')) {
-					const periodKey = update.trackerType === 'yearly' ? 'selectedYear' : 'selectedMonth';
+					const periodKey = update.trackerType === 'yearly' ? 'selectedYear' : 
+					                   update.trackerType === 'monthly' ? 'selectedMonth' :
+					                   'selectedPeriod';
 					lines.splice(i + 1, 0, `${periodKey}: ${update.newPeriod}`);
 					console.log('[NoteUpdater] Added', periodKey, 'at line', i + 1);
 					

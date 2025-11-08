@@ -2,6 +2,9 @@ import { ItemView, WorkspaceLeaf, TFile } from 'obsidian';
 import { DailyNoteBacklinkInfo, YearBounds, MonthBounds } from '../types';
 import { YearlyTrackerComponent } from './yearly-tracker-component';
 import { MonthlyTrackerComponent } from './monthly-tracker-component';
+import { BacklinkCounterComponent } from './backlink-counter-component';
+import { DailyNoteClassifier } from '../utils/daily-note-classifier';
+import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 
 export const NOTE_INSIGHTS_VIEW_TYPE = 'note-insights-view';
 
@@ -13,13 +16,24 @@ export class NoteInsightsView extends ItemView {
 	private currentNoteInfo: DailyNoteBacklinkInfo | null = null;
 	private yearlyTracker: YearlyTrackerComponent | null = null;
 	private monthlyTracker: MonthlyTrackerComponent | null = null;
+	private backlinkCounter: BacklinkCounterComponent | null = null;
 	private yearBounds: YearBounds | null = null;
 	private monthBounds: MonthBounds | null = null;
 	private onYearChangeCallback?: (year: number) => void;
 	private onMonthChangeCallback?: (month: number, year: number) => void;
+	private classifier: DailyNoteClassifier;
+	private analysisService: BacklinkAnalysisService | null = null;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
+		this.classifier = new DailyNoteClassifier(this.app);
+	}
+
+	/**
+	 * Set the analysis service (called by ViewManager)
+	 */
+	setAnalysisService(service: BacklinkAnalysisService): void {
+		this.analysisService = service;
 	}
 
 	getViewType(): string {
@@ -72,6 +86,9 @@ export class NoteInsightsView extends ItemView {
 		}
 		if (this.monthlyTracker) {
 			this.monthlyTracker.clear();
+		}
+		if (this.backlinkCounter) {
+			this.backlinkCounter.clear();
 		}
 		this.render();
 	}
@@ -131,6 +148,23 @@ export class NoteInsightsView extends ItemView {
 			cls: 'note-insights-note-title'
 		});
 
+		// counter section (FEA005)
+		const counterSection = container.createEl('div', { cls: 'note-insights-section' });
+		counterSection.createEl('div', {
+			text: 'counter',
+			cls: 'note-insights-label'
+		});
+		// Create counter container
+		const counterContainer = counterSection.createEl('div', { cls: 'note-insights-backlink-counter' });
+		// Create counter component
+		this.backlinkCounter = new BacklinkCounterComponent(counterContainer, this.classifier);
+		// Get backlinks for current note and update
+		const activeFile = this.app.workspace.getActiveFile();
+		if (activeFile && this.analysisService) {
+			const backlinks = this.analysisService.getBacklinksForFile(activeFile);
+			this.backlinkCounter.updateData(backlinks);
+		}
+
 		// Monthly tracker section
 		if (this.currentNoteInfo.yearlyData) {
 			const monthlySection = container.createEl('div', { cls: 'note-insights-section' });
@@ -179,5 +213,6 @@ export class NoteInsightsView extends ItemView {
 		this.currentNoteInfo = null;
 		this.yearlyTracker = null;
 		this.monthlyTracker = null;
+		this.backlinkCounter = null;
 	}
 }

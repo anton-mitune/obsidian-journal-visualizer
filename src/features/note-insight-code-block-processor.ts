@@ -2,9 +2,11 @@ import { App, MarkdownPostProcessorContext, Plugin, TFile, EventRef, MarkdownRen
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { YearlyTrackerComponent } from '../ui/yearly-tracker-component';
 import { MonthlyTrackerComponent } from '../ui/monthly-tracker-component';
+import { BacklinkCounterComponent } from '../ui/backlink-counter-component';
 import { UserNotifier } from '../utils/user-notifier';
 import { CanvasUpdater } from '../utils/canvas-updater';
 import { NoteUpdater } from '../utils/note-updater';
+import { TimePeriod } from '../types';
 
 /**
  * Parsed code block configuration
@@ -19,17 +21,22 @@ interface MonthlyCodeBlockConfig {
 	selectedMonth?: string; // Format: YYYY-MM
 }
 
+interface CounterCodeBlockConfig {
+	notePath: string;
+	selectedPeriod?: TimePeriod;
+}
+
 /**
  * Metadata for tracking a rendered code block and its refresh lifecycle
  */
 interface CodeBlockInstance {
-	component: YearlyTrackerComponent | MonthlyTrackerComponent;
+	component: YearlyTrackerComponent | MonthlyTrackerComponent | BacklinkCounterComponent;
 	notePath: string;
 	eventRef: EventRef;
-	type: 'yearly' | 'monthly';
+	type: 'yearly' | 'monthly' | 'counter';
 	ctx: MarkdownPostProcessorContext;
 	el: HTMLElement; // The original code block element
-	lastKnownPeriod: number | string; // year number for yearly, "YYYY-MM" for monthly
+	lastKnownPeriod: number | string | TimePeriod; // year number for yearly, "YYYY-MM" for monthly, TimePeriod for counter
 	isUpdatingCodeblock: boolean; // Flag to prevent infinite loops
 }
 
@@ -70,6 +77,11 @@ export class NoteInsightCodeBlockProcessor {
 		this.plugin.registerMarkdownCodeBlockProcessor(
 			'note-insight-monthly',
 			this.processMonthlyBlock.bind(this)
+		);
+
+		this.plugin.registerMarkdownCodeBlockProcessor(
+			'note-insight-counter',
+			this.processCounterBlock.bind(this)
 		);
 	}
 
@@ -338,6 +350,116 @@ export class NoteInsightCodeBlockProcessor {
 	}
 
 	/**
+	 * Process note-insight-counter code blocks
+	 */
+	private async processCounterBlock(
+		source: string,
+		el: HTMLElement,
+		ctx: MarkdownPostProcessorContext
+	): Promise<void> {
+		try {
+			// Parse configuration from the code block
+			const config = this.parseCounterConfig(source);
+			if (!config) {
+				el.createEl('div', {
+					text: 'Error: notePath not specified',
+					cls: 'note-insight-error'
+				});
+				return;
+			}
+
+			const { notePath, selectedPeriod } = config;
+
+			// Get the file
+			const file = this.app.vault.getAbstractFileByPath(notePath);
+			if (!file) {
+				el.createEl('div', {
+					text: `Error: Note not found: ${notePath}`,
+					cls: 'note-insight-error'
+				});
+				return;
+			}
+
+			// Get backlinks for the note
+			const backlinks = this.analysisService.getBacklinksForFile(file as TFile);
+
+			// Generate unique ID for this instance
+			const instanceId = `counter-${ctx.sourcePath}-${Date.now()}-${Math.random()}`;
+
+			// Create container for the component
+			const container = el.createEl('div', { cls: 'note-insight-code-block counter' });
+			
+			// Add title
+			const noteTitle = file.name.replace(/\.md$/, '');
+			container.createEl('h4', { text: noteTitle, cls: 'note-insight-title' });
+
+			// Create counter component with callback
+			const counterContainer = container.createEl('div', { cls: 'backlink-counter-wrapper' });
+			const counter = new BacklinkCounterComponent(
+				counterContainer,
+				this.analysisService.getClassifier(),
+				(period: TimePeriod) => {
+					// User changed the period - update the codeblock
+					this.updateCodeBlockSource(ctx, instanceId, period);
+				}
+			);
+			
+			// Set data and initial period
+			counter.updateData(backlinks);
+			const initialPeriod = selectedPeriod ?? TimePeriod.PAST_30_DAYS;
+			counter.setSelectedPeriod(initialPeriod);
+
+			// Register metadata-cache:resolved event listener to refresh component when watched note's backlinks change
+			const eventRef = this.app.metadataCache.on('resolved', () => {
+				const instance = this.instances.get(instanceId);
+				if (!instance || instance.isUpdatingCodeblock) {
+					return; // Skip if we're updating the codeblock
+				}
+
+				// Re-analyze the watched note and update the component
+				const updatedFile = this.app.vault.getAbstractFileByPath(notePath);
+				if (updatedFile) {
+					const updatedBacklinks = this.analysisService.getBacklinksForFile(updatedFile as TFile);
+					counter.updateData(updatedBacklinks);
+				}
+			});
+
+			// Register the event with the plugin for proper cleanup
+			this.plugin.registerEvent(eventRef);
+
+			// Store instance for cleanup
+			this.instances.set(instanceId, {
+				component: counter,
+				notePath,
+				eventRef,
+				type: 'counter',
+				ctx,
+				el,
+				lastKnownPeriod: initialPeriod,
+				isUpdatingCodeblock: false
+			});
+
+			// Register cleanup when section is unloaded
+			const renderChild = new MarkdownRenderChild(container);
+			renderChild.onunload = () => {
+				const instance = this.instances.get(instanceId);
+				if (instance) {
+					this.app.workspace.offref(instance.eventRef);
+					this.instances.delete(instanceId);
+				}
+			};
+			ctx.addChild(renderChild);
+
+		} catch (error) {
+			console.error('Error processing note-insight-counter block:', error);
+			el.createEl('div', {
+				text: `Error: ${error.message}`,
+				cls: 'note-insight-error'
+			});
+		}
+	}
+
+	/**
 	 * Parse the notePath from code block content
 	 * Expected format: "notePath: Vault/Path/to/Note.md"
 	 */
@@ -409,6 +531,37 @@ export class NoteInsightCodeBlockProcessor {
 		}
 
 		return { notePath, selectedMonth };
+	}
+
+	/**
+	 * Parse counter code block configuration
+	 * Expected format:
+	 * notePath: Vault/Path/to/Note.md
+	 * selectedPeriod: past-30-days
+	 */
+	private parseCounterConfig(source: string): CounterCodeBlockConfig | null {
+		const lines = source.trim().split('\n');
+		let notePath: string | null = null;
+		let selectedPeriod: TimePeriod | undefined = undefined;
+
+		for (const line of lines) {
+			const trimmedLine = line.trim();
+			if (trimmedLine.startsWith('notePath:')) {
+				notePath = trimmedLine.substring('notePath:'.length).trim();
+			} else if (trimmedLine.startsWith('selectedPeriod:')) {
+				const periodStr = trimmedLine.substring('selectedPeriod:'.length).trim() as TimePeriod;
+				// Validate it's a valid TimePeriod enum value
+				if (Object.values(TimePeriod).includes(periodStr)) {
+					selectedPeriod = periodStr;
+				}
+			}
+		}
+
+		if (!notePath) {
+			return null;
+		}
+
+		return { notePath, selectedPeriod };
 	}
 
 	/**

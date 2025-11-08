@@ -1,6 +1,7 @@
 import { App, Plugin, WorkspaceLeaf } from 'obsidian';
 import { NoteInsightsView, NOTE_INSIGHTS_VIEW_TYPE } from './note-insights-view';
 import { DailyNoteBacklinkInfo, YearBounds, MonthBounds } from '../types';
+import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 
 /**
  * Manages the Note Insights view lifecycle and registration
@@ -12,10 +13,12 @@ export class ViewManager {
 	private view: NoteInsightsView | null = null;
 	private onYearChangeCallback?: (year: number) => void;
 	private onMonthChangeCallback?: (month: number, year: number) => void;
+	private analysisService: BacklinkAnalysisService;
 
-	constructor(app: App, plugin: Plugin) {
+	constructor(app: App, plugin: Plugin, analysisService: BacklinkAnalysisService) {
 		this.app = app;
 		this.plugin = plugin;
+		this.analysisService = analysisService;
 	}
 
 	/**
@@ -85,6 +88,9 @@ export class ViewManager {
 						active: true
 					});
 					this.view = rightLeaf.view as NoteInsightsView;
+					
+					// Set analysis service
+					this.view.setAnalysisService(this.analysisService);
 					
 					// Set year change callback if available
 					if (this.onYearChangeCallback && this.view) {

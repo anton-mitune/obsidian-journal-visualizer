@@ -32,7 +32,7 @@ export default class VaultVisualizerPlugin extends Plugin {
 		// Initialize components
 		this.dailyNoteClassifier = new DailyNoteClassifier(this.app);
 		this.analysisService = new BacklinkAnalysisService(this.app, this.dailyNoteClassifier);
-		this.viewManager = new ViewManager(this.app, this);
+		this.viewManager = new ViewManager(this.app, this, this.analysisService);
 		
 		// Register the view with Obsidian
 		this.viewManager.registerView();

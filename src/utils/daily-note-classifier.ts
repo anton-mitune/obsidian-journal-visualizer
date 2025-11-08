@@ -291,4 +291,49 @@ export class DailyNoteClassifier {
 	getYearlyDailyNoteBacklinksLegacy(backlinks: BacklinkInfo[]): DailyNoteYearlyData {
 		return this.getYearlyDailyNoteBacklinks(backlinks, new Date().getFullYear());
 	}
+
+	/**
+	 * Count backlinks from daily notes within a specific date range
+	 * FEA005: Used by counter component
+	 */
+	countBacklinksInRange(targetNotePath: string, startDate: Date, endDate: Date): number {
+		// Get all backlinks to the target note
+		const resolvedLinks = this.app.metadataCache.resolvedLinks;
+		let totalCount = 0;
+
+		// Iterate through all files to find backlinks
+		for (const [sourcePath, links] of Object.entries(resolvedLinks)) {
+			// Check if this file links to our target
+			if (links[targetNotePath]) {
+				const sourceFile = this.app.vault.getAbstractFileByPath(sourcePath);
+				
+				// Only count if it's a daily note
+				if (sourceFile instanceof TFile && this.isDailyNote(sourceFile as TFile)) {
+					const dateString = this.extractDateFromDailyNote(sourceFile as TFile);
+					if (dateString) {
+						const fileDate = this.parseDateString(dateString);
+						
+						// Check if the file date is within our range
+						if (fileDate && fileDate >= startDate && fileDate <= endDate) {
+							totalCount += links[targetNotePath];
+						}
+					}
+				}
+			}
+		}
+
+		return totalCount;
+	}
+
+	/**
+	 * Parse a date string in YYYY-MM-DD format to a Date object (at midnight)
+	 */
+	private parseDateString(dateString: string): Date | null {
+		const match = dateString.match(/(\d{4})-(\d{2})-(\d{2})/);
+		if (!match) {
+			return null;
+		}
+		const [, year, month, day] = match;
+		return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0);
+	}
 }

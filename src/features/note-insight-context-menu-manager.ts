@@ -52,6 +52,16 @@ export class NoteInsightContextMenuManager {
 					this.showNoteSelectorForMonthly(editor);
 				});
 		});
+
+		// Add "Add Counter from Vault" option
+		menu.addItem((item) => {
+			item
+				.setTitle('Add Counter from Vault')
+				.setIcon('hash')
+				.onClick(() => {
+					this.showNoteSelectorForCounter(editor);
+				});
+		});
 	}
 
 	/**
@@ -71,6 +81,17 @@ export class NoteInsightContextMenuManager {
 	private showNoteSelectorForMonthly(editor: Editor): void {
 		const modal = new NoteSelector(this.app, (file) => {
 			const codeBlock = `\`\`\`note-insight-monthly\nnotePath: ${file.path}\n\`\`\`\n`;
+			editor.replaceSelection(codeBlock);
+		});
+		modal.open();
+	}
+
+	/**
+	 * Show note selector modal for counter
+	 */
+	private showNoteSelectorForCounter(editor: Editor): void {
+		const modal = new NoteSelector(this.app, (file) => {
+			const codeBlock = `\`\`\`note-insight-counter\nnotePath: ${file.path}\n\`\`\`\n`;
 			editor.replaceSelection(codeBlock);
 		});
 		modal.open();

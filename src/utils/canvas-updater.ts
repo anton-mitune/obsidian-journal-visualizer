@@ -1,12 +1,13 @@
 import { App, TFile, WorkspaceLeaf } from 'obsidian';
+import { TimePeriod } from '../types';
 
 /**
  * Configuration for updating a canvas codeblock
  */
 export interface CanvasCodeblockUpdate {
 	notePath: string;
-	trackerType: 'yearly' | 'monthly';
-	newPeriod: number | string;
+	trackerType: 'yearly' | 'monthly' | 'counter';
+	newPeriod: number | string | TimePeriod;
 }
 
 /**
@@ -57,11 +58,11 @@ export class CanvasUpdater {
 			const canvasContent = await this.app.vault.read(canvasFile);
 			const canvasData = JSON.parse(canvasContent);
 
-			// Find all text nodes containing matching codeblocks
-			const codeblockType = update.trackerType === 'yearly' ? 'note-insight-yearly' : 'note-insight-monthly';
-			const matchingNodes: any[] = [];
-			
-			console.log('[CanvasUpdater] Searching', canvasData.nodes?.length, 'canvas nodes');
+		// Find all text nodes containing matching codeblocks
+		const codeblockType = update.trackerType === 'yearly' ? 'note-insight-yearly' : 
+		                       update.trackerType === 'monthly' ? 'note-insight-monthly' :
+		                       'note-insight-counter';
+		const matchingNodes: any[] = [];			console.log('[CanvasUpdater] Searching', canvasData.nodes?.length, 'canvas nodes');
 			console.log('[CanvasUpdater] Looking for codeblock type:', codeblockType);
 
 			for (const node of canvasData.nodes || []) {
@@ -116,6 +117,11 @@ export class CanvasUpdater {
 				updatedLines = true;
 				console.log('[CanvasUpdater] Updated selectedMonth at line', i);
 				break;
+			} else if (update.trackerType === 'counter' && line.trim().startsWith('selectedPeriod:')) {
+				lines[i] = `selectedPeriod: ${update.newPeriod}`;
+				updatedLines = true;
+				console.log('[CanvasUpdater] Updated selectedPeriod at line', i);
+				break;
 			}
 		}
 
@@ -123,7 +129,9 @@ export class CanvasUpdater {
 		if (!updatedLines) {
 			for (let i = 0; i < lines.length; i++) {
 				if (lines[i].trim().startsWith('notePath:')) {
-					const periodKey = update.trackerType === 'yearly' ? 'selectedYear' : 'selectedMonth';
+					const periodKey = update.trackerType === 'yearly' ? 'selectedYear' : 
+					                   update.trackerType === 'monthly' ? 'selectedMonth' :
+					                   'selectedPeriod';
 					lines.splice(i + 1, 0, `${periodKey}: ${update.newPeriod}`);
 					console.log('[CanvasUpdater] Added', periodKey, 'at line', i + 1);
 					break;
