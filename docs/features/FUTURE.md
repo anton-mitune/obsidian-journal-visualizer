@@ -26,3 +26,5 @@
 
 
 // TODO later, add a settings page for the plugin to let user explicitly set week start day if needed.
+
+use a proper logging system instead of console.log for debug/info/warn/error messages.
