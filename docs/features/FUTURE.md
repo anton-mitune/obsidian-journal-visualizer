@@ -22,3 +22,7 @@
 
 ## Minor bugs
 - note insight Style "glitches" when editing a text node in canvas. Probably a css selector mismatch, that only match itemView, or editorView, but not canvas text node view. affects only to monthly tracker, yearly tracker is unaffected.
+
+
+
+// TODO later, add a settings page for the plugin to let user explicitly set week start day if needed.
