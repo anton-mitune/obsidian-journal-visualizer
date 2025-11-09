@@ -36,8 +36,18 @@
 **User Story:** As a note author, I want to select the time period for which I want to see the backlink count (e.g., current month, last 7 days, last 30 days), without having to select date ranges manually, so that I can customize the note insight counter to my specific needs and analyze trends over different time frames easily.
 **expected time periods:** past 24 hours, past 7 days, past 30 days, past 90 days, past year, today, this week, this month, this quarter, this year
 
+### Requirement 3 — Multiple notes watching (tobeimplemented)
+**User Story:** As a note author, I want the counter component to support watching multiple notes simultaneously, so that I can monitor and compare the backlink counts of various notes within my vault at the same time. It displays the backlink count for each watched note independently.
+**Example:** If several notes are being watched, each note's backlink count is displayed separately within the same counter component interface.
+
+### Requirement 4 - Folder watching (tobeimplemented)
+**User Story:** As a note author, I want the counter component to support watching all notes within a specific folder, so that I can easily monitor the backlink counts of multiple related notes without having to add each one individually.
+**Example 1:** if a new note is added to folder, it is added to the watched notes automatically
+**Example 2:** if a note is removed from folder, it is removed from the watched notes automatically
+
 ### Assumptions and rules
 - The default selected period is "past 30 days"
+- folder watching is recursive by default (includes subfolders)
 
 ## Design
 
