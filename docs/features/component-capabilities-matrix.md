@@ -4,11 +4,11 @@ This document provides a quick reference for all note insight components and the
 
 ## Available Components
 
-| Component | Feature Doc | Note Insights Panel | Code Blocks (Markdown) | Canvas Text Nodes | Context Menu | Code Block Type |
-|-----------|-------------|---------------------|------------------------|-------------------|--------------|-----------------|
-| Yearly Tracker | [FEA002](FEA002-yearly-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-yearly` |
-| Monthly Tracker | [FEA003](FEA003-monthly-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-monthly` |
-| Backlink Counter | [FEA005](FEA005-backlink-count-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-counter` |
+| Component | Feature Doc | Note Insights Panel | Code Blocks (Markdown) | Canvas Text Nodes | Context Menu | Code Block Type | Visualization modes | Multiple Notes Support |
+|-----------|-------------|---------------------|------------------------|-------------------|--------------|-----------------|---------------------|------------------------|
+| Yearly Tracker | [FEA002](FEA002-yearly-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-yearly` | | ❌  |
+| Monthly Tracker | [FEA003](FEA003-monthly-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-monthly` | | ❌ |
+| Backlink Counter | [FEA005](FEA005-backlink-count-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-counter` | Pie Chart (FEA006), Top Items (FEA007), Evolution (FEA008) | ✅ [FEA009](FEA009-multiple-notes-watching.md) |
 
 
 ## Where Components Appear
@@ -23,5 +23,10 @@ All components can be embedded in markdown notes using code block syntax. Each c
 All components work identically in canvas text nodes as they do in markdown notes.
 
 ### Editor Context Menu (FEA004)
-All components can be inserted via editor context menus
-Each option opens a note selector modal to choose the note to watch.
+All components can be inserted via editor context menus. Each option opens a note selector modal to choose the note to watch.
+
+## Component Features
+
+### Multiple Notes Watching (FEA009)
+Components can be configured to watch multiple notes or entire folders. See [FEA009](FEA009-multiple-notes-watching.md) for details.
+

@@ -261,11 +261,6 @@ Centralized service providing note analysis data:
    - Delegates update operations to specialized utility classes
    - Manages component lifecycle and event listeners
 
-3. **UserNotifier** (`src/utils/user-notifier.ts`)
-   - Handles user notifications for duplicate code block detection
-   - Provides consistent notification messages across canvas and note contexts
-   - Centralizes user feedback logic
-
 4. **CanvasUpdater** (`src/utils/canvas-updater.ts`)
    - Specialized class for updating code blocks in canvas text nodes
    - Accesses canvas data via workspace API

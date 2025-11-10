@@ -36,14 +36,6 @@
 **User Story:** As a note author, I want to select the time period for which I want to see the backlink count (e.g., current month, last 7 days, last 30 days), without having to select date ranges manually, so that I can customize the note insight counter to my specific needs and analyze trends over different time frames easily.
 **expected time periods:** past 24 hours, past 7 days, past 30 days, past 90 days, past year, today, this week, this month, this quarter, this year
 
-### Requirement 3 — Multiple notes watching (tobeimplemented)
-**User Story:** As a note author, I want the counter component to support watching multiple notes simultaneously, so that I can monitor and compare the backlink counts of various notes within my vault at the same time. It displays the backlink count for each watched note independently.
-**Example:** If several notes are being watched, each note's backlink count is displayed separately within the same counter component interface.
-
-### Requirement 4 - Folder watching (tobeimplemented)
-**User Story:** As a note author, I want the counter component to support watching all notes within a specific folder, so that I can easily monitor the backlink counts of multiple related notes without having to add each one individually.
-**Example 1:** if a new note is added to folder, it is added to the watched notes automatically
-**Example 2:** if a note is removed from folder, it is removed from the watched notes automatically
 
 ### Assumptions and rules
 - The default selected period is "past 30 days"
@@ -65,6 +57,8 @@
 4. Count is calculated and displayed with contextual label
 5. Updates automatically when backlinks change (via metadata cache events)
 6. State persists to code block content when embedded
+7. **Multiple notes mode**: User can add notes via "Add Note" button or remove notes via hover × button
+8. **Folder mode**: Automatically watches all notes in folder, no manual add/remove needed
 
 ### Implementation Details
 
@@ -166,11 +160,18 @@ Adds "Add Counter from Vault" menu item:
 
 #### 7. UI Layout
 
+**See [FEA009: Multiple Notes Watching](FEA009-multiple-notes-watching.md) for complete details on:**
+- Multiple notes and folder watching display layouts
+- UI controls for adding/removing notes (code blocks only)
+- CSS classes for list displays
+- Code block syntax for all three modes (single note, multiple notes, folder)
+
+**Single Note Display:**
 ```
 ┌─────────────────────────────────┐
-│  Counter               │
+│  Counter                        │
 ├─────────────────────────────────┤
-│  [Period Selector Dropdown ▾]   │
+│  [Period Selector ▾]  [+ Note]  │
 │                                 │
 │         42                      │
 │      backlinks in the           │
@@ -178,20 +179,15 @@ Adds "Add Counter from Vault" menu item:
 └─────────────────────────────────┘
 ```
 
-**CSS Classes** (in `styles.css`):
-- `.backlink-counter-component` - Main container
-- `.backlink-counter-dropdown` - Period selector dropdown
-- `.backlink-counter-display` - Count display container
-- `.backlink-counter-number` - Large count number
-- `.backlink-counter-label` - Descriptive text below count
-
 ### Technical Considerations
 - **Performance**: Date filtering is efficient (single pass through backlinks array)
 - **Timezone Handling**: Uses JavaScript Date object with local timezone
 - **State Persistence**: Code blocks persist `selectedPeriod` as string enum value
-- **Auto-refresh**: Metadata cache listener triggers updateData() on backlink changes
+- **Codeblock Discrimination**: Each code block has a unique `id:` property (6-char random string) that's automatically generated and used to identify which specific codeblock to update when state changes. This enables multiple counters watching the same note with different settings without conflicts.
+- **Auto-refresh**: Metadata cache listener triggers refresh on backlink changes
 - **Styling**: Uses Obsidian theme variables for consistent appearance
 - **Accessibility**: Dropdown is keyboard-navigable (native select element)
+- **Multiple Notes & Folders**: See [FEA009](FEA009-multiple-notes-watching.md) for architecture details
 
 ### Key Design Decisions
 1. **Enum-based periods**: Predefined time periods ensure consistency and simpler UX
@@ -200,7 +196,8 @@ Adds "Add Counter from Vault" menu item:
 4. **Default period**: "Past 30 days" provides useful default granularity
 5. **No custom ranges**: Keeps UI simple; can be added later if needed
 6. **Theme integration**: CSS variables ensure compatibility with all Obsidian themes
-7. **View panel + code blocks**: Available in both contexts for maximum flexibility
+6. **View panel + code blocks**: Available in both contexts for maximum flexibility
+7. **Multiple notes and folders**: See [FEA009](FEA009-multiple-notes-watching.md) for design rationale and implementation details
 
 ### Integration Points Summary
 1. **Note Insights View** (right sidebar): Automatically shows for active note
@@ -213,8 +210,9 @@ Adds "Add Counter from Vault" menu item:
 - **BacklinkCounterComponent** (`src/ui/backlink-counter-component.ts`): Main component class
 - **DateRangeCalculator** (`src/utils/date-range-calculator.ts`): Utility for period-to-range conversion
 - **TimePeriod** (`src/types.ts`): Enum defining all available time periods
-- **CounterState** (`src/types.ts`): Interface for component state
+- **CounterState** (`src/types.ts`): Interface for component state (includes notePaths and folderPath)
 - **DateRange** (`src/types.ts`): Interface representing start/end dates
+- **NoteCounterResult** (`src/types.ts`): Result object for individual note counts in multiple notes mode
 - **NoteInsightCodeBlockProcessor** (`src/features/note-insight-code-block-processor.ts`): Code block rendering
 - **NoteInsightContextMenuManager** (`src/features/note-insight-context-menu-manager.ts`): Context menu integration
 
@@ -230,15 +228,20 @@ The Backlink Counter component can be displayed in multiple contexts:
 
 ### Code Blocks in Markdown Notes (FEA004)
 - Can be embedded using `note-insight-counter` code block type
-- Allows watching any note (not just the active note)
+- Supports watching single note, multiple notes, or entire folders (see [FEA009](FEA009-multiple-notes-watching.md))
 - State (selected period) persists across sessions
 - Auto-updates when watched note's backlinks change
 
-**Code block syntax:**
+**Code block syntax examples:**
 ```note-insight-counter
+id: a3x9k2
 notePath: path/to/note.md
 selectedPeriod: past-30-days
 ```
+
+**Note:** The `id:` property is automatically generated when you first create the code block and is used to uniquely identify it for updates. You don't need to manually add it.
+
+See [FEA009](FEA009-multiple-notes-watching.md) for multiple notes (`notePaths:`) and folder watching (`folderPath:`) syntax.
 
 ### Canvas Text Nodes (FEA004)
 - Same functionality as markdown code blocks
