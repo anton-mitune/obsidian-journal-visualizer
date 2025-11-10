@@ -250,3 +250,9 @@ this.registerInterval(window.setInterval(() => { /* ... */ }, 1000));
 - Plugin guidelines: https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines
 - Style guide: https://help.obsidian.md/style-guide
 - Obsidian User documentation: https://help.obsidian.md. Explore this if you need to learn about Obsidian features or terminology.
+
+
+## Development methodology
+
+This section is very important:
+- During feature development, always refer to steering documents in `docs/steering/`. These provide critical guidelines on coding conventions, architecture patterns, and terminology. Make sure to always follow these conventions.
