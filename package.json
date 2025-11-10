@@ -8,7 +8,13 @@
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
-	"keywords": ["obsidian", "plugin", "visualization", "analytics", "vault"],
+	"keywords": [
+		"obsidian",
+		"plugin",
+		"visualization",
+		"analytics",
+		"vault"
+	],
 	"author": "mitune",
 	"license": "MIT",
 	"devDependencies": {
@@ -20,5 +26,8 @@
 		"obsidian": "latest",
 		"tslib": "2.4.0",
 		"typescript": "4.7.4"
+	},
+	"dependencies": {
+		"chart.js": "^4.5.1"
 	}
 }
