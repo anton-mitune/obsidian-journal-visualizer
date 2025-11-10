@@ -1,0 +1,2 @@
+- FEA009: new requirement 4 - too many watched notes notification
+- FEA007: implement top-n display mode assuming chart.js is already installed and imported
