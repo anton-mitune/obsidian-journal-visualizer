@@ -65,11 +65,19 @@ export class NoteInsightContextMenuManager {
 	}
 
 	/**
+	 * Generate a short random codeblock ID
+	 */
+	private generateCodeblockId(): string {
+		return Math.random().toString(36).substring(2, 8);
+	}
+
+	/**
 	 * Show note selector modal for yearly tracker
 	 */
 	private showNoteSelectorForYearly(editor: Editor): void {
 		const modal = new NoteSelector(this.app, (file) => {
-			const codeBlock = `\`\`\`note-insight-yearly\nnotePath: ${file.path}\n\`\`\`\n`;
+			const id = this.generateCodeblockId();
+			const codeBlock = `\`\`\`note-insight-yearly\nid: ${id}\nnotePath: ${file.path}\n\`\`\`\n`;
 			editor.replaceSelection(codeBlock);
 		});
 		modal.open();
@@ -80,7 +88,8 @@ export class NoteInsightContextMenuManager {
 	 */
 	private showNoteSelectorForMonthly(editor: Editor): void {
 		const modal = new NoteSelector(this.app, (file) => {
-			const codeBlock = `\`\`\`note-insight-monthly\nnotePath: ${file.path}\n\`\`\`\n`;
+			const id = this.generateCodeblockId();
+			const codeBlock = `\`\`\`note-insight-monthly\nid: ${id}\nnotePath: ${file.path}\n\`\`\`\n`;
 			editor.replaceSelection(codeBlock);
 		});
 		modal.open();
@@ -91,7 +100,8 @@ export class NoteInsightContextMenuManager {
 	 */
 	private showNoteSelectorForCounter(editor: Editor): void {
 		const modal = new NoteSelector(this.app, (file) => {
-			const codeBlock = `\`\`\`note-insight-counter\nnotePath: ${file.path}\n\`\`\`\n`;
+			const id = this.generateCodeblockId();
+			const codeBlock = `\`\`\`note-insight-counter\nid: ${id}\nnotePath: ${file.path}\n\`\`\`\n`;
 			editor.replaceSelection(codeBlock);
 		});
 		modal.open();

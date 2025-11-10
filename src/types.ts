@@ -79,9 +79,24 @@ export enum TimePeriod {
 
 export interface CounterState {
 	selectedPeriod: TimePeriod;
+	// Support for watching multiple notes (FEA009)
+	notePath?: string[];
+}
+
+export interface CounterConfig{
+	id: string;
+	notePath: string | string[];
+	selectedPeriod: TimePeriod;
 }
 
 export interface DateRange {
 	startDate: Date;
 	endDate: Date;
+}
+
+// Individual note counter result for multiple notes watching
+export interface NoteCounterResult {
+	notePath: string;
+	noteTitle: string;
+	count: number;
 }

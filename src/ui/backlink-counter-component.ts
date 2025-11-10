@@ -1,33 +1,77 @@
-import { TimePeriod, CounterState, BacklinkInfo } from '../types';
+import { App, TFile, setIcon } from 'obsidian';
+import { TimePeriod, CounterState, BacklinkInfo, NoteCounterResult } from '../types';
 import { DateRangeCalculator } from '../utils/date-range-calculator';
 import { DailyNoteClassifier } from '../utils/daily-note-classifier';
+import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
+import { NoteSelector } from './note-selector';
 
 /**
- * Component that displays backlink count for a watched note over a selected time period
+ * Component that displays backlink count for watched notes over a selected time period
  * FEA005: Backlink Count Tracker
+ * FEA009: Multiple Notes Watching
+ * Supports:
+ * - Single note watching (original feature)
+ * - Multiple notes watching (FEA009)
  */
 export class BacklinkCounterComponent {
 	private container: HTMLElement;
+	private app: App;
 	private classifier: DailyNoteClassifier;
+	private analysisService: BacklinkAnalysisService;
 	private state: CounterState;
-	private backlinks: BacklinkInfo[] = [];
-	private currentCount: number = 0;
+	private counterResults: NoteCounterResult[] = [];
 	private onPeriodChangeCallback?: (period: TimePeriod) => void;
+	private onNoteAddedCallback?: (notePath: string) => void;
+	private onNoteRemovedCallback?: (notePath: string) => void;
 
-	constructor(container: HTMLElement, classifier: DailyNoteClassifier, onPeriodChangeCallback?: (period: TimePeriod) => void) {
+	constructor(
+		container: HTMLElement, 
+		app: App,
+		classifier: DailyNoteClassifier,
+		analysisService: BacklinkAnalysisService,
+		onPeriodChangeCallback?: (period: TimePeriod) => void,
+		onNoteAddedCallback?: (notePath: string) => void,
+		onNoteRemovedCallback?: (notePath: string) => void
+	) {
 		this.container = container;
+		this.app = app;
 		this.classifier = classifier;
+		this.analysisService = analysisService;
 		this.onPeriodChangeCallback = onPeriodChangeCallback;
+		this.onNoteAddedCallback = onNoteAddedCallback;
+		this.onNoteRemovedCallback = onNoteRemovedCallback;
 		// Default to past 30 days as per requirements
 		this.state = { selectedPeriod: TimePeriod.PAST_30_DAYS };
 	}
 
 	/**
-	 * Update the component with new backlink data
+	 * Update the component with watched notes configuration
+	 * Can be called with:
+	 * - Single note path (legacy)
+	 * - Multiple note paths
 	 */
-	updateData(backlinks: BacklinkInfo[]): void {
-		this.backlinks = backlinks;
-		this.updateCount();
+	updateWatchedItems(config: { notePath?: string[] }): void {
+		this.state.notePath = config.notePath;
+		this.updateCounts();
+		this.render();
+	}
+
+	/**
+	 * Update for single note (backward compatibility with Note Insights View)
+	 */
+	updateData(backlinks: BacklinkInfo[], noteTitle?: string, notePath?: string): void {
+		// Set notePaths so updateCounts() can recalculate on period change
+		if (notePath) {
+			this.state.notePath = [notePath];
+		}
+		
+		// Calculate count for single note (legacy behavior)
+		const count = this.calculateCountForBacklinks(backlinks);
+		this.counterResults = [{
+			notePath: notePath || '',
+			noteTitle: noteTitle || 'Unknown',
+			count
+		}];
 		this.render();
 	}
 
@@ -36,7 +80,7 @@ export class BacklinkCounterComponent {
 	 */
 	setSelectedPeriod(period: TimePeriod): void {
 		this.state.selectedPeriod = period;
-		this.updateCount();
+		this.updateCounts();
 		this.render();
 	}
 
@@ -44,18 +88,64 @@ export class BacklinkCounterComponent {
 	 * Clear the component
 	 */
 	clear(): void {
-		this.backlinks = [];
-		this.currentCount = 0;
+		this.counterResults = [];
 		this.container.empty();
 	}
 
 	/**
-	 * Update the backlink count based on current state
+	 * Add a note to the watched list (FEA009 - Add Note UI)
 	 */
-	private updateCount(): void {
-		if (this.backlinks.length === 0) {
-			this.currentCount = 0;
-			return;
+	addNote(notePath: string): void {
+		if (this.onNoteAddedCallback) {
+			this.onNoteAddedCallback(notePath);
+		}
+	}
+
+	/**
+	 * Remove a note from the watched list (FEA009 - Remove Note UI)
+	 */
+	removeNote(notePath: string): void {
+		if (this.onNoteRemovedCallback) {
+			this.onNoteRemovedCallback(notePath);
+		}
+	}
+
+	/**
+	 * Update all counter results based on current state
+	 */
+	private updateCounts(): void {
+		this.counterResults = [];
+
+		console.warn(this.state.notePath);
+
+		// Handle multiple note paths
+		if (this.state.notePath && this.state.notePath.length > 0) {
+			if(typeof this.state.notePath === 'string'){
+				this.state.notePath = [this.state.notePath];
+			}
+			for (const notePath of this.state.notePath) {
+				const file = this.app.vault.getAbstractFileByPath(notePath);
+				console.warn(file);
+				if (file instanceof TFile) {
+					const backlinks = this.analysisService.getBacklinksForFile(file);
+					console.warn('[BacklinkCounter] Calculating count for note:', file.path, backlinks);
+					const count = this.calculateCountForBacklinks(backlinks);
+					this.counterResults.push({
+						notePath: file.path,
+						noteTitle: file.basename,
+						count
+					});
+				}
+			}
+		}
+	}
+
+	/**
+	 * Calculate backlink count for a set of backlinks within the selected period
+	 */
+	private calculateCountForBacklinks(backlinks: BacklinkInfo[]): number {
+		if (backlinks.length === 0) {
+			return 0;
 		}
 
 		const dateRange = DateRangeCalculator.calculateDateRange(this.state.selectedPeriod);
@@ -69,7 +159,7 @@ export class BacklinkCounterComponent {
 		});
 
 		// Filter backlinks to daily notes within the date range
-		for (const backlinkInfo of this.backlinks) {
+		for (const backlinkInfo of backlinks) {
 			if (this.classifier.isDailyNote(backlinkInfo.file)) {
 				const dateString = this.classifier.extractDateFromDailyNote(backlinkInfo.file);
 				if (dateString) {
@@ -93,7 +183,7 @@ export class BacklinkCounterComponent {
 		}
 
 		console.log('[BacklinkCounter] Final count:', totalCount);
-		this.currentCount = totalCount;
+		return totalCount;
 	}
 
 	/**
@@ -113,7 +203,7 @@ export class BacklinkCounterComponent {
 	 */
 	private onPeriodChange(newPeriod: TimePeriod): void {
 		this.state.selectedPeriod = newPeriod;
-		this.updateCount();
+		this.updateCounts();
 		this.render();
 		
 		// Notify callback if provided
@@ -129,9 +219,11 @@ export class BacklinkCounterComponent {
 		this.container.empty();
 		this.container.addClass('backlink-counter-component');
 
+		// Controls container (period selector + add button)
+		const controlsContainer = this.container.createEl('div', { cls: 'backlink-counter-controls' });
+		
 		// Period selector dropdown
-		const selectorContainer = this.container.createEl('div', { cls: 'backlink-counter-selector' });
-		const select = selectorContainer.createEl('select', { cls: 'backlink-counter-dropdown' });
+		const select = controlsContainer.createEl('select', { cls: 'backlink-counter-dropdown' });
 
 		// Add all period options
 		const periods = DateRangeCalculator.getAllPeriods();
@@ -150,26 +242,86 @@ export class BacklinkCounterComponent {
 			this.onPeriodChange(select.value as TimePeriod);
 		});
 
-		// Count display
-		const countContainer = this.container.createEl('div', { cls: 'backlink-counter-display' });
-		
-		const countNumber = countContainer.createEl('div', { 
-			cls: 'backlink-counter-number',
-			text: this.currentCount.toString()
-		});
+		// Add Note button (only show when callbacks provided)
+		if (this.onNoteAddedCallback) {
+			const addButton = controlsContainer.createEl('button', { 
+				cls: 'backlink-counter-add-button',
+				attr: { 'aria-label': 'Add note to watch' }
+			});
+			setIcon(addButton, 'plus');
+			addButton.addEventListener('click', () => this.showNoteSelector());
+		}
 
-		const countLabel = countContainer.createEl('div', {
-			cls: 'backlink-counter-label',
-			text: this.getCountLabel()
-		});
+		// Display counter results
+		if (this.counterResults.length === 0) {
+			// No data to display
+			const emptyMessage = this.container.createEl('div', {
+				cls: 'backlink-counter-empty',
+				text: 'No notes being watched'
+			});
+		} else if (this.counterResults.length === 1) {
+			// Single note display (original layout)
+			const result = this.counterResults[0];
+			const countContainer = this.container.createEl('div', { cls: 'backlink-counter-display' });
+			
+			const countNumber = countContainer.createEl('div', { 
+				cls: 'backlink-counter-number',
+				text: result.count.toString()
+			});
+
+			const countLabel = countContainer.createEl('div', {
+				cls: 'backlink-counter-label',
+				text: this.getCountLabel(result.count)
+			});
+		} else {
+			// Multiple notes display (FEA009)
+			const listContainer = this.container.createEl('div', { cls: 'backlink-counter-list' });
+			
+			for (const result of this.counterResults) {
+				const itemContainer = listContainer.createEl('div', { cls: 'backlink-counter-item' });
+				
+				const titleEl = itemContainer.createEl('div', {
+					cls: 'backlink-counter-item-title',
+					text: result.noteTitle
+				});
+
+				const countEl = itemContainer.createEl('div', {
+					cls: 'backlink-counter-item-count',
+					text: `${result.count} ${result.count === 1 ? 'backlink' : 'backlinks'}`
+				});
+
+				// Add remove button (only when callback provided)
+				if (this.onNoteRemovedCallback) {
+					const removeButton = itemContainer.createEl('button', {
+						cls: 'backlink-counter-item-remove',
+						attr: { 'aria-label': `Remove ${result.noteTitle}` }
+					});
+					setIcon(removeButton, 'x');
+					removeButton.addEventListener('click', (e) => {
+						e.stopPropagation();
+						this.removeNote(result.notePath);
+					});
+				}
+			}
+		}
 	}
 
 	/**
-	 * Get the label text for the current count
+	 * Show note selector modal to add a note
 	 */
-	private getCountLabel(): string {
+	private showNoteSelector(): void {
+		const modal = new NoteSelector(this.app, (file) => {
+			this.addNote(file.path);
+		});
+		modal.open();
+	}
+
+	/**
+	 * Get the label text for a count
+	 */
+	private getCountLabel(count: number): string {
 		const periodLabel = DateRangeCalculator.getPeriodLabel(this.state.selectedPeriod);
-		const backlinkWord = this.currentCount === 1 ? 'backlink' : 'backlinks';
+		const backlinkWord = count === 1 ? 'backlink' : 'backlinks';
 		return `${backlinkWord} in the ${periodLabel}`;
 	}
 }

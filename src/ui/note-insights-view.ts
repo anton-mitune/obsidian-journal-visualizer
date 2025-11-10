@@ -159,14 +159,20 @@ export class NoteInsightsView extends ItemView {
 		if (this.analysisService) {
 			// Create counter container
 			const counterContainer = counterSection.createEl('div', { cls: 'note-insights-backlink-counter' });
-			// Create counter component
-			this.backlinkCounter = new BacklinkCounterComponent(counterContainer, this.classifier);
+			// Create counter component (no callbacks needed for view panel - it doesn't persist or allow editing)
+			this.backlinkCounter = new BacklinkCounterComponent(
+				counterContainer, 
+				this.app,
+				this.classifier, 
+				this.analysisService
+				// No callbacks - view panel is read-only display
+			);
 			// Get backlinks for current note and update
 			const activeFile = this.app.workspace.getActiveFile();
 			if (activeFile) {
 				const backlinks = this.analysisService.getBacklinksForFile(activeFile);
 				console.log('[NoteInsightsView] Counter - updating with backlinks:', backlinks.length);
-				this.backlinkCounter.updateData(backlinks);
+				this.backlinkCounter.updateData(backlinks, activeFile.basename, activeFile.path);
 			} else {
 				console.warn('[NoteInsightsView] Counter - no active file');
 			}

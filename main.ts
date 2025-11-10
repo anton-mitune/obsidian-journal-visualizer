@@ -4,7 +4,9 @@ import { DailyNoteClassifier } from './src/utils/daily-note-classifier';
 import { BacklinkAnalysisService } from './src/services/backlink-analysis-service';
 import { BacklinkWatcher } from './src/features/backlink-watcher';
 import { ViewManager } from './src/ui/view-manager';
-import { NoteInsightCodeBlockProcessor } from './src/features/note-insight-code-block-processor';
+import { CounterCodeBlockProcessor } from './src/features/counter-code-block-processor';
+import { YearlyTrackerCodeBlockProcessor } from './src/features/yearly-tracker-code-block-processor';
+import { MonthlyTrackerCodeBlockProcessor } from './src/features/monthly-tracker-code-block-processor';
 import { NoteInsightContextMenuManager } from './src/features/note-insight-context-menu-manager';
 
 /**
@@ -22,7 +24,9 @@ export default class VaultVisualizerPlugin extends Plugin {
 	private analysisService: BacklinkAnalysisService;
 	private backlinkWatcher: BacklinkWatcher;
 	private viewManager: ViewManager;
-	private codeBlockProcessor: NoteInsightCodeBlockProcessor;
+	private counterProcessor: CounterCodeBlockProcessor;
+	private yearlyProcessor: YearlyTrackerCodeBlockProcessor;
+	private monthlyProcessor: MonthlyTrackerCodeBlockProcessor;
 	private contextMenuManager: NoteInsightContextMenuManager;
 
 	async onload() {
@@ -61,12 +65,26 @@ export default class VaultVisualizerPlugin extends Plugin {
 		this.backlinkWatcher.startWatching();
 
 		// Register code block processors for FEA004
-		this.codeBlockProcessor = new NoteInsightCodeBlockProcessor(
+		this.counterProcessor = new CounterCodeBlockProcessor(
 			this.app,
 			this,
 			this.analysisService
 		);
-		this.codeBlockProcessor.register();
+		this.counterProcessor.register();
+
+		this.yearlyProcessor = new YearlyTrackerCodeBlockProcessor(
+			this.app,
+			this,
+			this.analysisService
+		);
+		this.yearlyProcessor.register();
+
+		this.monthlyProcessor = new MonthlyTrackerCodeBlockProcessor(
+			this.app,
+			this,
+			this.analysisService
+		);
+		this.monthlyProcessor.register();
 
 		// Register context menu manager for FEA004
 		this.contextMenuManager = new NoteInsightContextMenuManager(this.app, this);
@@ -83,8 +101,14 @@ export default class VaultVisualizerPlugin extends Plugin {
 		if (this.backlinkWatcher) {
 			this.backlinkWatcher.stopWatching();
 		}
-		if (this.codeBlockProcessor) {
-			this.codeBlockProcessor.cleanup();
+		if (this.counterProcessor) {
+			this.counterProcessor.unload();
+		}
+		if (this.yearlyProcessor) {
+			this.yearlyProcessor.unload();
+		}
+		if (this.monthlyProcessor) {
+			this.monthlyProcessor.unload();
 		}
 		if (this.viewManager) {
 			this.viewManager.cleanup();
