@@ -41,10 +41,18 @@
 - AND the code block is updated automatically
 - AND only "Project Alpha" and "Project Gamma" remain displayed
 
+### Requirement 4 - too many watched notes notification
+**User Story:** As a note author, when I attempt to add too many notes to watch in a component, I want to receive a notification that I've exceeded the limit, so that I can manage performance and usability.
+**Example:**
+- GIVEN I have a component code block watching the maximum allowed number of notes
+- WHEN I attempt to add another note
+- THEN I receive a notification indicating I've exceeded the limit
+
 ### Assumptions and Rules
 - Add/remove UI controls are only available in code block embeds (markdown files), not in the Note Insights View panel
 - Note Insights View panel always shows metrics for the currently active note only
 - Components switch display layout based on number of watched items (single note vs. multiple notes list)
+- hard limit of 50 notes to be watched simultaneously to prevent performance issues. notify user if limit exceeded. to be hardcoded for now, can be added to settings later if needed.
 
 ## Design
 
