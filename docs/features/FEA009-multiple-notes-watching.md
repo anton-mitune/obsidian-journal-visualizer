@@ -57,27 +57,28 @@ notePath: path/to/note.md
 
 **Multiple specific notes:**
 ```note-insight-[component-type]
-notePaths: Projects/Alpha.md, Projects/Beta.md, Work/Tasks.md
+notePath: Projects/Alpha.md
+notePath: Projects/Beta.md
+notePath: Work/Tasks.md
 ```
 
 ### Technical Implementation
 
 **Component Architecture:**
-- Components accept optional `onNoteAdded`, `onNoteRemoved`, `onFolderRemoved` callbacks
+- Components accept optional `onNoteAdded`, `onNoteRemoved`
 - Callbacks control whether UI controls are rendered (only present in code block context)
-- Components manage `notePaths` or `folderPath` in their state
+- Components manage `notePath`  in their state
 - Display layout adapts based on number of watched items
 
 **Code Block Processor:**
-- Parses `notePaths:` (comma-separated) and `folderPath:` from code blocks
+- Parses `notePath:` (multiple lines) from code blocks
 - Provides callbacks to components that update code block content
-- Handles persistence to markdown files
+- Handles persistence to the codeblock itself
 - Prevents infinite refresh loops with `isUpdatingCodeblock` flag
 
 **UI Controls:**
 - Add Note button: Opens `NoteSelector` modal, triggers `onNoteAdded` callback
 - Remove Note button: Appears on hover, triggers `onNoteRemoved` callback
-- Remove Folder button: Appears next to folder indicator, triggers `onFolderRemoved` callback
 
 ### Components Supporting This Feature
 
@@ -85,10 +86,6 @@ See [Component Capabilities Matrix](component-capabilities-matrix.md) for comple
 
 **Currently Implemented:**
 - Backlink Counter (FEA005) - Shows individual backlink counts for each watched note
-
-**Planned:**
-- Yearly Tracker (FEA002) - Future enhancement
-- Monthly Tracker (FEA003) - Future enhancement
 
 ## Integration Points
 
