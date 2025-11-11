@@ -1236,6 +1236,105 @@
     max-height: 300px;
 }
 
+/* ==================== FEA008: Time-Series Visualization ==================== */
+
+.time-series-container {
+    width: 100%;
+}
+
+.time-series-title {
+    margin: 0 0 16px 0;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--text-normal);
+    text-align: center;
+}
+
+.time-series-chart-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.time-series-svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.time-series-grid line {
+    stroke: var(--background-modifier-border);
+    stroke-width: 1;
+}
+
+.time-series-axes line {
+    stroke: var(--text-muted);
+    stroke-width: 2;
+}
+
+.time-series-labels text {
+    fill: var(--text-muted);
+    font-size: 12px;
+    font-family: var(--font-interface);
+}
+
+.time-series-lines path {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.time-series-points circle {
+    cursor: pointer;
+    transition: r 0.2s ease;
+}
+
+.time-series-points circle:hover {
+    r: 6;
+}
+
+.time-series-legend {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+}
+
+.time-series-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    background: var(--background-secondary);
+    transition: background-color 0.2s ease;
+}
+
+.time-series-legend-item:hover {
+    background: var(--background-modifier-hover);
+}
+
+.time-series-legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.time-series-legend-label {
+    color: var(--text-normal);
+    font-size: 0.9em;
+}
+
+.time-series-empty-state {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
 /* Responsive adjustments for counter */
 @media (max-width: 768px) {
     .backlink-counter-number {

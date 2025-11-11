@@ -81,7 +81,8 @@ export enum TimePeriod {
 export enum DisplayMode {
 	DEFAULT = 'default',
 	TOP_N = 'top-n',
-	PIE = 'pie'
+	PIE = 'pie',
+	TIME_SERIES = 'time-series'
 }
 
 export interface CounterState {

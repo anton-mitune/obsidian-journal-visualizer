@@ -6,6 +6,7 @@ import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { NoteSelector } from './note-selector';
 import { TopNRenderer } from './top-n-renderer';
 import { PieRenderer } from './pie-renderer';
+import { TimeSeriesRenderer, buildTimeSeriesData } from './time-series-renderer';
 import { MAX_WATCHED_NOTES } from '../constants';
 
 /**
@@ -25,6 +26,7 @@ export class BacklinkCounterComponent {
 	private counterResults: NoteCounterResult[] = [];
 	private topNRenderer: TopNRenderer;
 	private pieRenderer: PieRenderer;
+	private timeSeriesRenderer: TimeSeriesRenderer;
 	private onPeriodChangeCallback?: (period: TimePeriod) => void;
 	private onNoteAddedCallback?: (notePath: string) => void;
 	private onNoteRemovedCallback?: (notePath: string) => void;
@@ -57,6 +59,8 @@ export class BacklinkCounterComponent {
 		this.topNRenderer = new TopNRenderer(this.container);
 		// Initialize PieRenderer with a placeholder container that will be set during render
 		this.pieRenderer = new PieRenderer(this.container);
+		// Initialize TimeSeriesRenderer with a placeholder container that will be set during render
+		this.timeSeriesRenderer = new TimeSeriesRenderer(this.container);
 	}
 
 	/**
@@ -268,6 +272,8 @@ export class BacklinkCounterComponent {
 			this.renderTopNMode();
 		} else if (currentDisplayMode === DisplayMode.PIE) {
 			this.renderPieMode();
+		} else if (currentDisplayMode === DisplayMode.TIME_SERIES) {
+			this.renderTimeSeriesMode();
 		} else {
 			this.renderDefaultMode();
 		}
@@ -438,6 +444,46 @@ export class BacklinkCounterComponent {
 	}
 
 	/**
+	 * Render time-series mode display (FEA008)
+	 */
+	private renderTimeSeriesMode(): void {
+		// Create container for time-series visualization
+		const timeSeriesContainer = this.container.createEl('div', { cls: 'backlink-counter-time-series' });
+		
+		// Get time-series data for each watched note
+		const dateRange = DateRangeCalculator.calculateDateRange(this.state.selectedPeriod);
+		const timeSeriesData: Array<{ notePath: string; noteTitle: string; data: any }> = [];
+		
+		if (this.state.notePath && this.state.notePath.length > 0) {
+			for (const notePath of this.state.notePath) {
+				const file = this.app.vault.getAbstractFileByPath(notePath);
+				if (file instanceof TFile) {
+					// Get daily backlink data for this note within the period
+					const backlinks = this.analysisService.getBacklinksForFile(file);
+					const dailyData = this.classifier.getDailyBacklinksInRange(backlinks, dateRange.startDate, dateRange.endDate);
+					
+					timeSeriesData.push({
+						notePath: file.path,
+						noteTitle: file.basename,
+						data: dailyData
+					});
+				}
+			}
+		}
+		
+		// Build series data and render
+		const colors = [
+			'#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', 
+			'#ef4444', '#ec4899', '#14b8a6', '#f97316'
+		];
+		const seriesData = buildTimeSeriesData(timeSeriesData, colors);
+		
+		this.timeSeriesRenderer = new TimeSeriesRenderer(timeSeriesContainer);
+		const periodLabel = DateRangeCalculator.getPeriodLabel(this.state.selectedPeriod);
+		this.timeSeriesRenderer.render(seriesData, periodLabel);
+	}
+
+	/**
 	 * Show note selector modal to add a note
 	 */
 	private showNoteSelector(): void {
@@ -457,7 +503,7 @@ export class BacklinkCounterComponent {
 	}
 
 	/**
-	 * Get icon name for display mode (FEA007, FEA006)
+	 * Get icon name for display mode (FEA007, FEA006, FEA008)
 	 */
 	private getDisplayModeIcon(mode: DisplayMode): string {
 		switch (mode) {
@@ -467,13 +513,15 @@ export class BacklinkCounterComponent {
 				return 'bar-chart-2';
 			case DisplayMode.PIE:
 				return 'pie-chart';
+			case DisplayMode.TIME_SERIES:
+				return 'trending-up';
 			default:
 				return 'list';
 		}
 	}
 
 	/**
-	 * Get aria label for display mode (FEA007, FEA006)
+	 * Get aria label for display mode (FEA007, FEA006, FEA008)
 	 */
 	private getDisplayModeLabel(mode: DisplayMode): string {
 		switch (mode) {
@@ -482,6 +530,8 @@ export class BacklinkCounterComponent {
 			case DisplayMode.TOP_N:
 				return 'Switch to pie chart view';
 			case DisplayMode.PIE:
+				return 'Switch to time-series view';
+			case DisplayMode.TIME_SERIES:
 				return 'Switch to list view';
 			default:
 				return 'Switch display mode';
@@ -489,7 +539,7 @@ export class BacklinkCounterComponent {
 	}
 
 	/**
-	 * Get next display mode in cycle: default -> top-n -> pie -> default (FEA007, FEA006)
+	 * Get next display mode in cycle: default -> top-n -> pie -> time-series -> default (FEA007, FEA006, FEA008)
 	 */
 	private getNextDisplayMode(currentMode: DisplayMode): DisplayMode {
 		switch (currentMode) {
@@ -498,6 +548,8 @@ export class BacklinkCounterComponent {
 			case DisplayMode.TOP_N:
 				return DisplayMode.PIE;
 			case DisplayMode.PIE:
+				return DisplayMode.TIME_SERIES;
+			case DisplayMode.TIME_SERIES:
 				return DisplayMode.DEFAULT;
 			default:
 				return DisplayMode.DEFAULT;

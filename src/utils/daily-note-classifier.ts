@@ -293,6 +293,53 @@ export class DailyNoteClassifier {
 	}
 
 	/**
+	 * Get daily note backlinks within a specific date range (FEA008: Time-series visualization)
+	 * Returns data for all dates in the range, with 0 counts for dates with no backlinks
+	 */
+	getDailyBacklinksInRange(backlinks: BacklinkInfo[], startDate: Date, endDate: Date): DailyNoteYearlyData {
+		const rangeData: DailyNoteYearlyData = {};
+		
+		// Initialize all dates in range with 0
+		const currentDate = new Date(startDate);
+		while (currentDate <= endDate) {
+			const dateString = this.formatDateString(currentDate);
+			rangeData[dateString] = {
+				linkCount: 0,
+				lines: undefined
+			};
+			currentDate.setDate(currentDate.getDate() + 1);
+		}
+		
+		// Fill in actual backlink counts
+		for (const backlinkInfo of backlinks) {
+			if (this.isDailyNote(backlinkInfo.file)) {
+				const dateString = this.extractDateFromDailyNote(backlinkInfo.file);
+				if (dateString) {
+					const fileDate = this.parseDateString(dateString);
+					if (fileDate && fileDate >= startDate && fileDate <= endDate) {
+						rangeData[dateString] = {
+							linkCount: backlinkInfo.linkCount,
+							lines: undefined
+						};
+					}
+				}
+			}
+		}
+		
+		return rangeData;
+	}
+
+	/**
+	 * Format a Date object to YYYY-MM-DD string
+	 */
+	private formatDateString(date: Date): string {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	}
+
+	/**
 	 * Count backlinks from daily notes within a specific date range
 	 * FEA005: Used by counter component
 	 */
