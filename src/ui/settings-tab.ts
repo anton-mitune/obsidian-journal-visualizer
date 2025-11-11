@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type VaultVisualizerPlugin from '../../main';
+import { ColorPalette, COLOR_PALETTES } from '../types';
 
 /**
  * SettingsTab - Plugin settings page
@@ -60,6 +61,31 @@ export class VaultVisualizerSettingTab extends PluginSettingTab {
 			text: 'Set default colors for up to 10 series in visualizations.',
 			cls: 'setting-item-description'
 		});
+
+		// Suggested Color Palette Setting (FEA010 Requirement 5)
+		new Setting(containerEl)
+			.setName('Suggested color palette')
+			.setDesc('You can also customize individual series colors below by using the color picker.')
+			.addDropdown(dropdown => dropdown
+				.addOption(ColorPalette.VIBRANT, 'Vibrant')
+				.addOption(ColorPalette.PASTEL, 'Pastel Dreamland')
+				.setValue(this.plugin.settings.suggestedColorPalette)
+				.onChange(async (value) => {
+					const palette = value as ColorPalette;
+					this.plugin.settings.suggestedColorPalette = palette;
+					
+					// Apply the palette colors to series colors
+					const paletteColors = COLOR_PALETTES[palette];
+					for (let i = 0; i < 10; i++) {
+						const colorKey = `series${i + 1}Color` as keyof typeof this.plugin.settings;
+						(this.plugin.settings[colorKey] as string) = paletteColors[i];
+					}
+					
+					await this.plugin.saveSettings();
+					
+					// Refresh the display to show updated colors
+					this.display();
+				}));
 
 		// Series 1-10 Color Settings
 		for (let i = 1; i <= 10; i++) {

@@ -1,12 +1,53 @@
 import { TFile } from 'obsidian';
 
 /**
+ * Color palette options for series visualizations
+ * FEA010: Plugin Settings - Requirement 5
+ */
+export enum ColorPalette {
+	VIBRANT = 'vibrant',
+	PASTEL = 'pastel'
+}
+
+/**
+ * Predefined color palettes for visualizations
+ * FEA010: Plugin Settings - Requirement 5
+ */
+export const COLOR_PALETTES: Record<ColorPalette, string[]> = {
+	[ColorPalette.VIBRANT]: [
+		'#8b5cf6', // purple
+		'#3b82f6', // blue
+		'#10b981', // green
+		'#f59e0b', // amber
+		'#ef4444', // red
+		'#ec4899', // pink
+		'#14b8a6', // teal
+		'#f97316', // orange
+		'#6366f1', // indigo
+		'#84cc16', // lime
+	],
+	[ColorPalette.PASTEL]: [
+		'#cdb4db', // pastel purple
+		'#ffc8dd', // pastel pink
+		'#ffafcc', // light pastel pink
+		'#bde0fe', // light pastel blue
+		'#a2d2ff', // pastel blue
+		'#9bf6ff', // light pastel cyan
+		'#fdffb6', // pastel yellow
+		'#caffbf', // pastel green
+		'#9ae6b4', // light pastel green
+		'#d0f4de', // very light pastel green
+	]
+};
+
+/**
  * Plugin settings interface
  * FEA010: Plugin Settings
  */
 export interface VaultVisualizerSettings {
 	firstDayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sunday, 1 = Monday, etc.
 	maxWatchedNotes: number;
+	suggestedColorPalette: ColorPalette; // FEA010 Requirement 5
 	series1Color: string;
 	series2Color: string;
 	series3Color: string;
@@ -22,6 +63,7 @@ export interface VaultVisualizerSettings {
 export const DEFAULT_SETTINGS: VaultVisualizerSettings = {
 	firstDayOfWeek: 1, // Monday
 	maxWatchedNotes: 50,
+	suggestedColorPalette: ColorPalette.VIBRANT,
 	series1Color: '#8b5cf6', // purple
 	series2Color: '#3b82f6', // blue
 	series3Color: '#10b981', // green
