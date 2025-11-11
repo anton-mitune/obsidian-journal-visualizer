@@ -4,6 +4,7 @@ import { DateRangeCalculator } from '../utils/date-range-calculator';
 import { DailyNoteClassifier } from '../utils/daily-note-classifier';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { NoteSelector } from './note-selector';
+import { MAX_WATCHED_NOTES } from '../constants';
 
 /**
  * Component that displays backlink count for watched notes over a selected time period
@@ -244,12 +245,24 @@ export class BacklinkCounterComponent {
 
 		// Add Note button (only show when callbacks provided)
 		if (this.onNoteAddedCallback) {
+			const currentCount = this.state.notePath?.length || 0;
+			const isAtLimit = currentCount >= MAX_WATCHED_NOTES;
+			
 			const addButton = controlsContainer.createEl('button', { 
-				cls: 'backlink-counter-add-button',
-				attr: { 'aria-label': 'Add note to watch' }
+				cls: `backlink-counter-add-button ${isAtLimit ? 'disabled' : ''}`,
+				attr: { 
+					'aria-label': isAtLimit 
+						? `Maximum limit of ${MAX_WATCHED_NOTES} notes reached` 
+						: 'Add note to watch'
+				}
 			});
 			setIcon(addButton, 'plus');
-			addButton.addEventListener('click', () => this.showNoteSelector());
+			
+			if (isAtLimit) {
+				addButton.disabled = true;
+			} else {
+				addButton.addEventListener('click', () => this.showNoteSelector());
+			}
 		}
 
 		// Display counter results

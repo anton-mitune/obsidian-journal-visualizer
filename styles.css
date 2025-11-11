@@ -845,6 +845,17 @@
     background: var(--interactive-accent-hover);
 }
 
+.backlink-counter-add-button.disabled {
+    background: var(--background-modifier-border);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.backlink-counter-add-button.disabled:hover {
+    background: var(--background-modifier-border);
+}
+
 .backlink-counter-add-button svg {
     width: 16px;
     height: 16px;

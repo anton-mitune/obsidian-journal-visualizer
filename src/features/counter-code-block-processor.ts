@@ -1,8 +1,9 @@
-import { App, Plugin, MarkdownPostProcessorContext, TFile } from 'obsidian';
+import { App, Plugin, MarkdownPostProcessorContext, TFile, Notice } from 'obsidian';
 import { BaseCodeBlockProcessor, CodeBlockInstance } from './base-code-block-processor';
 import { BacklinkCounterComponent } from '../ui/backlink-counter-component';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { TimePeriod } from '../types';
+import { MAX_WATCHED_NOTES } from '../constants';
 
 /**
  * Configuration parsed from counter code block
