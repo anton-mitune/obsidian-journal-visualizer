@@ -6,6 +6,7 @@ import { BacklinkCounterComponent } from './backlink-counter-component';
 import { DailyNoteClassifier } from '../utils/daily-note-classifier';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { SettingsService } from '../services/settings-service';
+import { logger } from '../utils/logger';
 
 export const NOTE_INSIGHTS_VIEW_TYPE = 'note-insights-view';
 
@@ -36,6 +37,10 @@ export class NoteInsightsView extends ItemView {
 	 */
 	setAnalysisService(service: BacklinkAnalysisService): void {
 		this.analysisService = service;
+		// If view is already open, load the current active note
+		if (this.containerEl.isShown()) {
+			this.loadCurrentActiveNote();
+		}
 	}
 
 	/**
@@ -182,13 +187,13 @@ export class NoteInsightsView extends ItemView {
 			const activeFile = this.app.workspace.getActiveFile();
 			if (activeFile) {
 				const backlinks = this.analysisService.getBacklinksForFile(activeFile);
-				console.log('[NoteInsightsView] Counter - updating with backlinks:', backlinks.length);
+				logger.log('[NoteInsightsView] Counter - updating with backlinks:', backlinks.length);
 				this.backlinkCounter.updateData(backlinks, activeFile.basename, activeFile.path);
 			} else {
-				console.warn('[NoteInsightsView] Counter - no active file');
+				logger.warn('[NoteInsightsView] Counter - no active file');
 			}
 		} else {
-			console.error('[NoteInsightsView] Counter - analysisService is null! Cannot create counter.');
+			logger.error('[NoteInsightsView] Counter - analysisService is null! Cannot create counter.');
 			counterSection.createEl('div', {
 				text: 'Counter unavailable (service not initialized)',
 				cls: 'note-insights-error'
@@ -235,7 +240,34 @@ export class NoteInsightsView extends ItemView {
 	}
 
 	async onOpen(): Promise<void> {
+		// When view opens, try to load the current active note
+		this.loadCurrentActiveNote();
 		this.render();
+	}
+
+	/**
+	 * Load and display insights for the currently active note
+	 */
+	private loadCurrentActiveNote(): void {
+		if (!this.analysisService) {
+			// Analysis service not yet set, will be loaded when it's set
+			return;
+		}
+
+		const activeFile = this.app.workspace.getActiveFile();
+		if (!activeFile) {
+			// No active file, show empty state
+			this.clearNoteInfo();
+			return;
+		}
+
+		// Analyze the current active note
+		const noteInfo = this.analysisService.analyzeNote(activeFile);
+		const yearBounds = this.analysisService.getYearBounds(activeFile);
+		const monthBounds = this.analysisService.getMonthBounds(activeFile);
+
+		// Update the view with the current note's data
+		this.updateNoteInfo(noteInfo, yearBounds, monthBounds);
 	}
 
 	async onClose(): Promise<void> {

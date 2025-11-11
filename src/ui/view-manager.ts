@@ -3,6 +3,7 @@ import { NoteInsightsView, NOTE_INSIGHTS_VIEW_TYPE } from './note-insights-view'
 import { DailyNoteBacklinkInfo, YearBounds, MonthBounds } from '../types';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { SettingsService } from '../services/settings-service';
+import { logger } from '../utils/logger';
 
 /**
  * Manages the Note Insights view lifecycle and registration
@@ -56,22 +57,37 @@ export class ViewManager {
 		// Register the view type
 		this.plugin.registerView(
 			NOTE_INSIGHTS_VIEW_TYPE,
-			(leaf) => new NoteInsightsView(leaf)
+			(leaf) => {
+				const view = new NoteInsightsView(leaf);
+
+				// Set services when view is created (when user opens it)
+				view.setAnalysisService(this.analysisService);
+				view.setSettingsService(this.settingsService);
+				
+				// Set callbacks if available
+				if (this.onYearChangeCallback) {
+					view.setOnYearChangeCallback(this.onYearChangeCallback);
+				}
+				if (this.onMonthChangeCallback) {
+					view.setOnMonthChangeCallback(this.onMonthChangeCallback);
+				}
+				
+				// Store reference
+				this.view = view;
+				
+				return view;
+			}
 		);
 
 		// Add ribbon icon to toggle the view
 		this.plugin.addRibbonIcon('bar-chart-3', 'Note insights', () => {
 			this.activateView();
 		});
-
-		// Auto-open the view on startup after workspace is ready
-		this.app.workspace.onLayoutReady(() => {
-			this.activateView();
-		});
 	}
 
 	/**
 	 * Activate the view in the right sidebar
+	 * Opens the view if it doesn't exist, or reveals it if it's hidden
 	 */
 	private async activateView(): Promise<void> {
 		try {
@@ -79,20 +95,10 @@ export class ViewManager {
 			const existingLeaf = this.app.workspace.getLeavesOfType(NOTE_INSIGHTS_VIEW_TYPE)?.[0];
 			
 			if (existingLeaf) {
-				// If view exists, reveal it
+				// View exists, just reveal it
 				this.app.workspace.revealLeaf(existingLeaf);
 				this.view = existingLeaf.view as NoteInsightsView;
-				
-				// Ensure analysis service is set (in case view was created before service was available)
-				this.view.setAnalysisService(this.analysisService);
-				// Ensure settings service is set (FEA010)
-				this.view.setSettingsService(this.settingsService);
 			} else {
-				// Wait for workspace to be ready
-				if (!this.app.workspace.layoutReady) {
-					return;
-				}
-				
 				// Create new view in right sidebar
 				const rightLeaf = this.app.workspace.getRightLeaf(false);
 				if (rightLeaf) {
@@ -100,26 +106,11 @@ export class ViewManager {
 						type: NOTE_INSIGHTS_VIEW_TYPE,
 						active: true
 					});
-					this.view = rightLeaf.view as NoteInsightsView;
-					
-					// Set analysis service
-					this.view.setAnalysisService(this.analysisService);
-					// Set settings service (FEA010)
-					this.view.setSettingsService(this.settingsService);
-					
-					// Set year change callback if available
-					if (this.onYearChangeCallback && this.view) {
-						this.view.setOnYearChangeCallback(this.onYearChangeCallback);
-					}
-					
-					// Set month change callback if available
-					if (this.onMonthChangeCallback && this.view) {
-						this.view.setOnMonthChangeCallback(this.onMonthChangeCallback);
-					}
+					// View reference will be set by the factory function
 				}
 			}
 		} catch (error) {
-			console.error('Vault Visualizer: Error activating view:', error);
+			logger.error('Vault Visualizer: Error activating view:', error);
 		}
 	}
 
@@ -147,6 +138,7 @@ export class ViewManager {
 			if (existingLeaf) {
 				this.view = existingLeaf.view as NoteInsightsView;
 				// Ensure analysis service is set
+				if(!this.view.setAnalysisService) return;
 				this.view.setAnalysisService(this.analysisService);
 				// Set callbacks if available
 				if (this.onYearChangeCallback) {
