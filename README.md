@@ -1,4 +1,49 @@
-# Obsidian Sample Plugin
+# Vault Visualizer
+
+Turn your notes into insight. Get contextual stats, dashboards, and smart suggestions for your vault.
+
+This plugin assumes you are journaling using daily notes, and using links from your daily notes to other notes in your vault to log activities, moods, tasks, projects, etc...
+When you do, it provides different ways to visualize those links as insights about your notes.
+
+## Features - what
+
+Get additional contextual stats about active note in the `note insight view`, available in the right sidebar by default.
+![alt text](image.png)
+
+Embed note insight module in markdown notes or canvas text nodes using the dedicated contextual menu.
+![alt text](image-1.png)
+![alt text](image-2.png)
+![alt text](image-3.png)
+
+Available modules:
+- Monthly tracker (seen above)
+![alt text](image-4.png)
+- yearly tracker
+![alt text](image-5.png)
+- counter
+![alt text](image-6.png)
+
+Counter are special, they have multiple display modes (pie chart, top items, time series) and can track multiple notes at once.
+![alt text](image-7.png)
+
+With those you can build nice dashboards to visualize your vault data.
+![alt text](image-8.png)
+
+Every module is a codeblock, meaning you *can* write them by hand if you want to, but it's easier to insert them using the context menu, and configure them using the knobs and buttons provided.
+Also, colors among other things are customizable via plugin settings.
+
+## The problem this plugin solves - why
+
+If you're like me, and use Obsidian for personal journaling, knowledge management, or project planning, you probably have hundreds or thousands of notes. Obsidian is great for linking notes together, and helping you find specific piece of information, as long as you or organize it in a way that works for you.
+
+However, as your vault grows, it becomes harder to get a high-level overview of your notes, and how they relate to each other. You might have notes that are linked together, but you don't know how often you link them, or what the most important notes are. You might have tags that you use frequently, but you don't know how they relate to each other.
+
+This plugin is an attempt at solving this problem, by providing different ways to get a higher-level overview of your Vault.
+
+---
+
+
+# Legacy README from obsidian sample plugin
 
 This is a sample plugin for Obsidian (https://obsidian.md).
 

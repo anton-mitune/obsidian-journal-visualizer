@@ -4,11 +4,11 @@ This document provides a quick reference for all note insight components and the
 
 ## Available Components
 
-| Component | Feature Doc | Note Insights Panel | Code Blocks (Markdown) | Canvas Text Nodes | Context Menu | Code Block Type | Visualization modes | Multiple Notes Support |
+| Component | Feature Doc | Note Insights Panel | Code Blocks (Markdown) | Canvas Text Nodes | Context Menu | Code Block Type | Display Modes | Multiple Notes Support |
 |-----------|-------------|---------------------|------------------------|-------------------|--------------|-----------------|---------------------|------------------------|
-| Yearly Tracker | [FEA002](FEA002-yearly-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-yearly` | | ❌  |
-| Monthly Tracker | [FEA003](FEA003-monthly-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-monthly` | | ❌ |
-| Backlink Counter | [FEA005](FEA005-backlink-count-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-counter` | Pie Chart (FEA006), Top Items (FEA007), Evolution (FEA008) | ✅ [FEA009](FEA009-multiple-notes-watching.md) |
+| Yearly Tracker | [FEA002](FEA002-yearly-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-yearly` | Default only | ❌  |
+| Monthly Tracker | [FEA003](FEA003-monthly-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-monthly` | Default only | ❌ |
+| Backlink Counter | [FEA005](FEA005-backlink-count-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-counter` | Default, Pie ([FEA006](FEA006-pie-display-mode.md)), Top-N ([FEA007](FEA007-top-n-display-mode.md)), Time-Series ([FEA008](FEA008-time-series-display-mode.md)) | ✅ ([FEA009](FEA009-multiple-notes-watching.md)) |
 
 
 ## Where Components Appear
@@ -27,6 +27,19 @@ All components can be inserted via editor context menus. Each option opens a not
 
 ## Component Features
 
+### Display Modes
+Components that support multiple notes watching can display data in different visualization modes:
+
+- **Default**: Standard single-metric display (suitable for single or multiple notes)
+- **Pie** ([FEA006](FEA006-pie-display-mode.md)): Pie chart showing distribution across watched notes
+- **Top-N** ([FEA007](FEA007-top-n-display-mode.md)): Horizontal bar chart ranking notes by backlink count
+- **Time-Series** ([FEA008](FEA008-time-series-display-mode.md)): Line chart showing backlink evolution over time
+
+Display modes are only available in code block embeds (markdown and canvas), not in the Note Insights Panel.
+
 ### Multiple Notes Watching (FEA009)
-Components can be configured to watch multiple notes or entire folders. See [FEA009](FEA009-multiple-notes-watching.md) for details.
+Components can be configured to watch multiple notes simultaneously. See [FEA009](FEA009-multiple-notes-watching.md) for details on:
+- Adding/removing notes via UI controls
+- Watching up to 50 notes per component
+- Managing watched note lists
 
