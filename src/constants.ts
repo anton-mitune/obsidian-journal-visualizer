@@ -7,4 +7,4 @@
  * FEA009: Multiple Notes Watching - Requirement 4
  * This limit prevents performance issues and maintains usability
  */
-export const MAX_WATCHED_NOTES = 3;
+export const MAX_WATCHED_NOTES = 50;
