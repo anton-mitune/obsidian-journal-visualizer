@@ -35,17 +35,17 @@
 
 **default mode of component (current default):**
 ```note-insight-[component-type]
-mode: default
+displayAs: default
 ```
 
 **top mode of component:**
 ```note-insight-[component-type]
-mode: pie
+displayAs: pie
 ```
 
 **Full Example**
 ```note-insight-backlink-counter
-mode: pie
+displayAs: pie
 notePath: Projects/Alpha.md
 notePath: Projects/Beta.md
 notePath: Projects/Gamma.md
