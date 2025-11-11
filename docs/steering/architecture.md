@@ -18,9 +18,11 @@ src/
   
   services/
     backlink-analysis-service.ts           # Centralized backlink analysis and data queries
+    settings-service.ts                    # Settings state management and subscriptions 
   
   utils/
     daily-note-classifier.ts               # Identifies daily notes, date range queries
+    date-range-calculator.ts               # Converts time periods to date ranges
     canvas-updater.ts                      # Updates code blocks in canvas nodes
     note-updater.ts                        # Updates code blocks in markdown files
     user-notifier.ts                       # User notifications
@@ -32,6 +34,10 @@ src/
     monthly-tracker-component.ts           # Monthly calendar visualization
     backlink-counter-component.ts          # Backlink count by time period
     note-selector.ts                       # Modal for selecting notes
+    settings-tab.ts                        # Plugin settings UI (FEA010)
+    pie-renderer.ts                        # Pie chart renderer
+    top-n-renderer.ts                      # Top N list renderer
+    time-series-renderer.ts                # Time series line chart renderer
 
 styles.css                   # All component styling (note-insights-*, component-specific)
 main.ts                      # Root entry point (imports from src/main.ts)
@@ -43,6 +49,7 @@ manifest.json               # Plugin metadata
 ### Core Plugin Components
 - **VaultVisualizerPlugin**: Main plugin class, orchestrates all features
 - **BacklinkAnalysisService**: Centralized service for querying and analyzing backlinks
+- **SettingsService**: Manages plugin settings state and provides subscription capabilities (FEA010)
 - **DailyNoteClassifier**: Utility for identifying daily notes and filtering by date ranges
 - **BacklinkWatcher**: Event-driven component monitoring file changes
 
@@ -59,11 +66,30 @@ Modular, reusable UI components that provide analytics about notes. Each compone
 - Filters and processes data internally using `DailyNoteClassifier`
 - Renders visualization in provided container
 - Notifies parent of state changes via callback
+- Reacts to settings changes via `SettingsService` subscription (FEA010)
 
 **Current Components:**
 - **YearlyTrackerComponent** (FEA002): Git-style heatmap showing daily note backlinks by day for a selected year
+  - Reacts to: firstDayOfWeek setting
 - **MonthlyTrackerComponent** (FEA003): Calendar-style grid showing daily note backlinks for a selected month
-- **BacklinkCounterComponent** (FEA005): Displays total backlink count for a selected time period (past 7 days, this month, etc.)
+  - Reacts to: firstDayOfWeek setting
+- **BacklinkCounterComponent** (FEA005): Displays total backlink count for a selected time period
+  - Supports multiple display modes: default, top-n, pie chart, time series (FEA006-FEA008)
+  - Reacts to: firstDayOfWeek, maxWatchedNotes, series colors (series1Color-series10Color)
+
+### Settings System (FEA010)
+**SettingsService**:
+- Centralized settings state management
+- Provides subscription mechanism for settings changes
+- Accessed by components, processors, and utilities
+
+**VaultVisualizerSettingTab**:
+- Settings UI using Obsidian's PluginSettingTab
+- Configurable settings:
+  - First day of week (0=Sunday to 6=Saturday)
+  - Max watched notes (default: 50)
+  - Series colors 1-10 (for visualizations)
+- Settings changes propagate through SettingsService to subscribed components
 
 ### Code Block Rendering System (FEA004)
 Allows embedding note insight components anywhere via code blocks:
