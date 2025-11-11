@@ -58,24 +58,31 @@ period: last-month
 
 ### Technical Implementation
 
-**component rendering logic:**
-- add UI logic to toggle display modes, update codeblock, and re-render component accordingly, leveraging existing code block update mechanisms from FEA009 (parent codeblock-processor class, and counter component)
-- separate the 2 display modes rendering logic into separate methods for clarity and maintainability. name suggestions: renderDefaultMode() and renderTopNMode().
-- extract current rendering logic into RenderDefaultMode() to keep existing behavior intact.
-- RenderTopMode() logic should be handled in a new class entirely `topNRenderer.ts` to keep single responsibility principle and maintainability. Make it reusable for future components that may want top-n mode and agnostic of existing components specific data structure.
-- for the topNRenderer, we'd like to use an existing charts library if possible to simplify development and ensure good visuals. Senior dev is recommending Chart.js based on prior experience. If we go this route, make sure to keep the library usage encapsulated within the topNRenderer class to avoid coupling it to the rest of the codebase. Also make sure to checkout its documentation to ensure compatibility with our project.
+**Rendering Approach:**
+- Use vanilla CSS with HTML progress bar elements for visualization
+- Dedicated TopNRenderer class in `src/ui/top-n-renderer.ts` for separation of concerns
+- Keep rendering logic self-contained and reusable for future components
 
-**other technical info:**
-- new enum for display types (default, top-n)
-- update other types to include display mode in codeblocks that should support it (e.g., backlink counter)
-- codeblockProcessor should only face minor change. if major changes are needed, pause, explain the reasoning, and get approval before proceeding.
-- assume chart.js is already installed and imported entirely within topNRenderer.ts, no need to handle installation or global imports here.
+**Component Rendering Logic:**
+- Add UI logic to toggle display modes, update codeblock, and re-render component accordingly, leveraging existing code block update mechanisms from FEA009 (parent codeblock-processor class, and counter component)
+- Separate the 2 display modes rendering logic into separate methods for clarity and maintainability: renderDefaultMode() and renderTopNMode()
+- Extract current rendering logic into renderDefaultMode() to keep existing behavior intact
+- renderTopNMode() delegates to TopNRenderer class to maintain single responsibility principle
 
-**Other ressources:**
-- Chart.js bar chart doc: https://www.chartjs.org/docs/latest/charts/bar.html
-- Chart.js integration doc: https://www.chartjs.org/docs/latest/getting-started/integration.html
-- Chart.js step by step tutorial: hhttps://www.chartjs.org/docs/latest/getting-started/usage.html
-- Chart.js documentation: https://www.chartjs.org/docs/latest/
+**Implementation Details:**
+- TopNRenderer receives NoteCounterResult[] and periodLabel
+- Sorts results by count descending, then alphabetically for ties
+- Creates horizontal bar visualization using CSS and HTML elements
+- Truncates long note titles with ellipsis to prevent layout breaking
+- Shows all watched notes including those with 0 backlinks
+
+**Other Technical Info:**
+- New enum for display types (default, top-n, pie)
+- Update types to include display mode in codeblocks that support it (e.g., backlink counter)
+- CodeblockProcessor should only face minor changes
+
+**Future Enhancement:**
+- Chart.js integration may be considered for improved interactivity and visual polish in future iterations
 
 
 ### Components Supporting This Feature
