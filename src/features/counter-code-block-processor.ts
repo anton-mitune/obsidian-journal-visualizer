@@ -2,7 +2,7 @@ import { App, Plugin, MarkdownPostProcessorContext, TFile, Notice } from 'obsidi
 import { BaseCodeBlockProcessor, CodeBlockInstance } from './base-code-block-processor';
 import { BacklinkCounterComponent } from '../ui/backlink-counter-component';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
-import { TimePeriod } from '../types';
+import { TimePeriod, DisplayMode } from '../types';
 import { MAX_WATCHED_NOTES } from '../constants';
 
 /**
@@ -12,6 +12,7 @@ interface CounterCodeBlockConfig {
 	id: string; // Required - written by insert command
 	notePath?: string[];
 	selectedPeriod?: TimePeriod;
+	displayAs?: DisplayMode; // FEA007: Display mode support
 }
 
 /**
@@ -89,15 +90,21 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 				this.analysisService,
 				(period: TimePeriod) => this.onPeriodChanged(ctx, config.id, period),
 				(notePath: string) => this.onNoteAdded(ctx, config.id, notePath),
-				(notePath: string) => this.onNoteRemoved(ctx, config.id, notePath)
+				(notePath: string) => this.onNoteRemoved(ctx, config.id, notePath),
+				(mode: DisplayMode) => this.onDisplayModeChanged(ctx, config.id, mode)
 			);
 
-			// Set initial period
+			// Set initial period and display mode
 			const initialPeriod = config.selectedPeriod ?? TimePeriod.PAST_30_DAYS;
+			const initialDisplayMode = config.displayAs ?? DisplayMode.DEFAULT;
 			counter.setSelectedPeriod(initialPeriod);
+			counter.setDisplayMode(initialDisplayMode);
 
-			// Configure watched items (always use notePaths array)
-			counter.updateWatchedItems({ notePath: config.notePath });
+			// Configure watched items (always use notePaths array) with display mode
+			counter.updateWatchedItems({ 
+				notePath: config.notePath,
+				displayAs: initialDisplayMode
+			});
 			// Register metadata-cache listener for auto-refresh
 			const eventRef = this.app.metadataCache.on('resolved', () => {
 				const instance = this.instances.get(config.id);
@@ -106,9 +113,13 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 				}
 
 				// Re-calculate counts for the watched notes
-				// Use updateWatchedItems to properly refresh all watched notes
+				// Use updateWatchedItems to properly refresh all watched notes with current display mode
 				if (instance.notePath && instance.notePath.length > 0) {
-					counter.updateWatchedItems({ notePath: instance.notePath });
+					const currentDisplayMode = config.displayAs ?? DisplayMode.DEFAULT;
+					counter.updateWatchedItems({ 
+						notePath: instance.notePath,
+						displayAs: currentDisplayMode
+					});
 				}
 			});
 
@@ -157,6 +168,10 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 		if (!config['selectedPeriod'] || !Object.values(TimePeriod).includes(config['selectedPeriod'])) {
 			config['selectedPeriod'] = TimePeriod.PAST_30_DAYS;
 		}
+		// if display mode is not set or not one of the enum values, set acceptable default
+		if (!config['displayMode'] || !Object.values(DisplayMode).includes(config['displayMode'])) {
+			config['displayMode'] = DisplayMode.DEFAULT;
+		}
 
 		// return typed config as CounterCodeBlockConfig
 		this.config = config as CounterCodeBlockConfig;
@@ -194,6 +209,30 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 	}
 
 	/**
+	 * Handle display mode change (FEA007)
+	 */
+	private async onDisplayModeChanged(
+		ctx: MarkdownPostProcessorContext,
+		instanceId: string,
+		newMode: DisplayMode
+	): Promise<void> {
+		const instance = this.instances.get(instanceId);
+		if (!instance || instance.isUpdatingCodeblock) {
+			return;
+		}
+
+		instance.isUpdatingCodeblock = true;
+
+		try {
+			await this.updateCodeblockProperty(ctx, instance, 'displayAs', newMode);
+		} finally {
+			setTimeout(() => {
+				instance.isUpdatingCodeblock = false;
+			}, 100);
+		}
+	}
+
+	/**
 	 * Handle note added
 	 */
 	private async onNoteAdded(
@@ -203,7 +242,6 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 	): Promise<void> {
 		console.log('[CounterCodeBlockProcessor] Adding note to watch list:', notePath);
 		const instance = this.instances.get(instanceId);
-		console.log('[CounterCodeBlockProcessor] Current watched notes before addition:', instance?.notePath);
 
 		if (!instance || instance.isUpdatingCodeblock) {
 			return;
@@ -212,7 +250,6 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 		instance.isUpdatingCodeblock = true;
 
 		try {
-			console.log('[CounterCodeBlockProcessor] config before addition:', this.config);
 			if (this.config?.notePath?.includes(notePath) === false) {
 				this.config.notePath.push(notePath);
 				await this.updateCodeblockProperty(ctx, instance, 'notePath', this.config.notePath);

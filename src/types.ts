@@ -77,16 +77,26 @@ export enum TimePeriod {
 	THIS_YEAR = 'this-year'
 }
 
+// FEA007: Display mode types
+export enum DisplayMode {
+	DEFAULT = 'default',
+	TOP_N = 'top-n'
+}
+
 export interface CounterState {
 	selectedPeriod: TimePeriod;
 	// Support for watching multiple notes (FEA009)
 	notePath?: string[];
+	// FEA007: Display mode support
+	displayAs?: DisplayMode;
 }
 
 export interface CounterConfig{
 	id: string;
 	notePath: string | string[];
 	selectedPeriod: TimePeriod;
+	// FEA007: Display mode support
+	displayAs?: DisplayMode;
 }
 
 export interface DateRange {

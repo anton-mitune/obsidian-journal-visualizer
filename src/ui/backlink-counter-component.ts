@@ -1,9 +1,10 @@
 import { App, TFile, setIcon } from 'obsidian';
-import { TimePeriod, CounterState, BacklinkInfo, NoteCounterResult } from '../types';
+import { TimePeriod, CounterState, BacklinkInfo, NoteCounterResult, DisplayMode } from '../types';
 import { DateRangeCalculator } from '../utils/date-range-calculator';
 import { DailyNoteClassifier } from '../utils/daily-note-classifier';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { NoteSelector } from './note-selector';
+import { TopNRenderer } from './top-n-renderer';
 import { MAX_WATCHED_NOTES } from '../constants';
 
 /**
@@ -21,9 +22,11 @@ export class BacklinkCounterComponent {
 	private analysisService: BacklinkAnalysisService;
 	private state: CounterState;
 	private counterResults: NoteCounterResult[] = [];
+	private topNRenderer: TopNRenderer;
 	private onPeriodChangeCallback?: (period: TimePeriod) => void;
 	private onNoteAddedCallback?: (notePath: string) => void;
 	private onNoteRemovedCallback?: (notePath: string) => void;
+	private onDisplayModeChangeCallback?: (mode: DisplayMode) => void;
 
 	constructor(
 		container: HTMLElement, 
@@ -32,7 +35,8 @@ export class BacklinkCounterComponent {
 		analysisService: BacklinkAnalysisService,
 		onPeriodChangeCallback?: (period: TimePeriod) => void,
 		onNoteAddedCallback?: (notePath: string) => void,
-		onNoteRemovedCallback?: (notePath: string) => void
+		onNoteRemovedCallback?: (notePath: string) => void,
+		onDisplayModeChangeCallback?: (mode: DisplayMode) => void
 	) {
 		this.container = container;
 		this.app = app;
@@ -41,8 +45,14 @@ export class BacklinkCounterComponent {
 		this.onPeriodChangeCallback = onPeriodChangeCallback;
 		this.onNoteAddedCallback = onNoteAddedCallback;
 		this.onNoteRemovedCallback = onNoteRemovedCallback;
-		// Default to past 30 days as per requirements
-		this.state = { selectedPeriod: TimePeriod.PAST_30_DAYS };
+		this.onDisplayModeChangeCallback = onDisplayModeChangeCallback;
+		// Default to past 30 days and default display mode as per requirements
+		this.state = { 
+			selectedPeriod: TimePeriod.PAST_30_DAYS,
+			displayAs: DisplayMode.DEFAULT 
+		};
+		// Initialize TopNRenderer with a placeholder container that will be set during render
+		this.topNRenderer = new TopNRenderer(this.container);
 	}
 
 	/**
@@ -50,9 +60,13 @@ export class BacklinkCounterComponent {
 	 * Can be called with:
 	 * - Single note path (legacy)
 	 * - Multiple note paths
+	 * - Display mode (FEA007)
 	 */
-	updateWatchedItems(config: { notePath?: string[] }): void {
+	updateWatchedItems(config: { notePath?: string[]; displayAs?: DisplayMode }): void {
 		this.state.notePath = config.notePath;
+		if (config.displayAs !== undefined) {
+			this.state.displayAs = config.displayAs;
+		}
 		this.updateCounts();
 		this.render();
 	}
@@ -82,6 +96,14 @@ export class BacklinkCounterComponent {
 	setSelectedPeriod(period: TimePeriod): void {
 		this.state.selectedPeriod = period;
 		this.updateCounts();
+		this.render();
+	}
+
+	/**
+	 * Set the display mode (FEA007)
+	 */
+	setDisplayMode(mode: DisplayMode): void {
+		this.state.displayAs = mode;
 		this.render();
 	}
 
@@ -214,15 +236,64 @@ export class BacklinkCounterComponent {
 	}
 
 	/**
+	 * Handle display mode change (FEA007)
+	 */
+	private onDisplayModeChange(newMode: DisplayMode): void {
+		this.state.displayAs = newMode;
+		this.render();
+		
+		// Notify callback if provided
+		if (this.onDisplayModeChangeCallback) {
+			this.onDisplayModeChangeCallback(newMode);
+		}
+	}
+
+	/**
 	 * Render the component
 	 */
 	render(): void {
 		this.container.empty();
 		this.container.addClass('backlink-counter-component');
 
-		// Controls container (period selector + add button)
+		// Render controls
+		this.renderControls();
+
+		// Render content based on display mode
+		const currentDisplayMode = this.state.displayAs || DisplayMode.DEFAULT;
+		if (currentDisplayMode === DisplayMode.TOP_N) {
+			this.renderTopNMode();
+		} else {
+			this.renderDefaultMode();
+		}
+	}
+
+	/**
+	 * Render the control elements (period selector, display mode toggle, add button)
+	 */
+	private renderControls(): void {
 		const controlsContainer = this.container.createEl('div', { cls: 'backlink-counter-controls' });
 		
+		// Display mode toggle button (FEA007)
+		if (this.shouldShowDisplayModeToggle()) {
+			const currentMode = this.state.displayAs || DisplayMode.DEFAULT;
+			const isTopN = currentMode === DisplayMode.TOP_N;
+			
+			const toggleButton = controlsContainer.createEl('button', {
+				cls: 'backlink-counter-mode-toggle',
+				attr: { 
+					'aria-label': isTopN ? 'Switch to default view' : 'Switch to top-N bars view'
+				}
+			});
+
+			// Use appropriate icon based on current mode
+			setIcon(toggleButton, isTopN ? 'list' : 'bar-chart-horizontal');
+			
+			toggleButton.addEventListener('click', () => {
+				const newMode = isTopN ? DisplayMode.DEFAULT : DisplayMode.TOP_N;
+				this.onDisplayModeChange(newMode);
+			});
+		}
+
 		// Period selector dropdown
 		const select = controlsContainer.createEl('select', { cls: 'backlink-counter-dropdown' });
 
@@ -264,7 +335,20 @@ export class BacklinkCounterComponent {
 				addButton.addEventListener('click', () => this.showNoteSelector());
 			}
 		}
+	}
 
+	/**
+	 * Check if display mode toggle should be shown
+	 * Only show for multiple notes watching (FEA007 requirement)
+	 */
+	private shouldShowDisplayModeToggle(): boolean {
+		return this.counterResults.length > 1;
+	}
+
+	/**
+	 * Render default mode display (FEA007)
+	 */
+	private renderDefaultMode(): void {
 		// Display counter results
 		if (this.counterResults.length === 0) {
 			// No data to display
@@ -290,6 +374,9 @@ export class BacklinkCounterComponent {
 			// Multiple notes display (FEA009)
 			const listContainer = this.container.createEl('div', { cls: 'backlink-counter-list' });
 			
+			// sort counter results by count descending
+			this.counterResults.sort((a, b) => b.count - a.count);
+
 			for (const result of this.counterResults) {
 				const itemContainer = listContainer.createEl('div', { cls: 'backlink-counter-item' });
 				
@@ -317,6 +404,19 @@ export class BacklinkCounterComponent {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Render top-N mode display (FEA007)
+	 */
+	private renderTopNMode(): void {
+		// Create container for top-N visualization
+		const topNContainer = this.container.createEl('div', { cls: 'backlink-counter-top-n' });
+		
+		// Update TopNRenderer container and render
+		this.topNRenderer = new TopNRenderer(topNContainer);
+		const periodLabel = DateRangeCalculator.getPeriodLabel(this.state.selectedPeriod);
+		this.topNRenderer.render(this.counterResults, periodLabel);
 	}
 
 	/**

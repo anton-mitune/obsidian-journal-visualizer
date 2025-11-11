@@ -27,7 +27,7 @@
 - in top-n, n refers to the actual number of watched notes. If 20 notes are watched, all 20 are shown in descending backlink count order.
 - when two notes have the same backlink count, they are sorted alphabetically by note title.
 - if a note has 0 backlinks in the selected period, it is still shown with a count of 0.
-- Switching display modes happens by clicking a button in the component UI, which updates the code block content accordingly. Button to be located next to existing period selector.
+- Switching display modes happens by clicking the display mode dropdown in the component UI, similar to period selector.
 - no hard spec on visuals, inspire from obsidian visuals and aesthetics.
 - very long note names should be truncated with ellipsis to prevent layout breaking.
 - default mode value is "default", meaning existing behavior is preserved unless user explicitly switches to "top-n" mode.
@@ -50,11 +50,9 @@ mode: top-n
 **Full Example**
 ```note-insight-backlink-counter
 mode: top-n
-topN: 5
-notePaths:
-  - Projects/Alpha.md
-  - Projects/Beta.md
-  - Projects/Gamma.md
+notePath: Projects/Alpha.md
+notePath: Projects/Beta.md
+notePath: Projects/Gamma.md
 period: last-month
 ```
 
@@ -98,3 +96,6 @@ Primary use case with full UI support for switching display modes.
 ### Canvas Text Nodes (FEA004)
 same as code blocks in markdown notes.
 
+
+## Implementation log
+2025-11-11: chartJS was not integrated yet because first implementation with simple progress bars was deemed good enough by PO. future iterations may consider integrating chartJS for better visuals. and interactivity.
