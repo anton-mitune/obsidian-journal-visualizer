@@ -80,7 +80,8 @@ export enum TimePeriod {
 // FEA007: Display mode types
 export enum DisplayMode {
 	DEFAULT = 'default',
-	TOP_N = 'top-n'
+	TOP_N = 'top-n',
+	PIE = 'pie'
 }
 
 export interface CounterState {

@@ -5,6 +5,7 @@ import { DailyNoteClassifier } from '../utils/daily-note-classifier';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { NoteSelector } from './note-selector';
 import { TopNRenderer } from './top-n-renderer';
+import { PieRenderer } from './pie-renderer';
 import { MAX_WATCHED_NOTES } from '../constants';
 
 /**
@@ -23,6 +24,7 @@ export class BacklinkCounterComponent {
 	private state: CounterState;
 	private counterResults: NoteCounterResult[] = [];
 	private topNRenderer: TopNRenderer;
+	private pieRenderer: PieRenderer;
 	private onPeriodChangeCallback?: (period: TimePeriod) => void;
 	private onNoteAddedCallback?: (notePath: string) => void;
 	private onNoteRemovedCallback?: (notePath: string) => void;
@@ -53,6 +55,8 @@ export class BacklinkCounterComponent {
 		};
 		// Initialize TopNRenderer with a placeholder container that will be set during render
 		this.topNRenderer = new TopNRenderer(this.container);
+		// Initialize PieRenderer with a placeholder container that will be set during render
+		this.pieRenderer = new PieRenderer(this.container);
 	}
 
 	/**
@@ -262,6 +266,8 @@ export class BacklinkCounterComponent {
 		const currentDisplayMode = this.state.displayAs || DisplayMode.DEFAULT;
 		if (currentDisplayMode === DisplayMode.TOP_N) {
 			this.renderTopNMode();
+		} else if (currentDisplayMode === DisplayMode.PIE) {
+			this.renderPieMode();
 		} else {
 			this.renderDefaultMode();
 		}
@@ -273,23 +279,22 @@ export class BacklinkCounterComponent {
 	private renderControls(): void {
 		const controlsContainer = this.container.createEl('div', { cls: 'backlink-counter-controls' });
 		
-		// Display mode toggle button (FEA007)
+		// Display mode dropdown button (FEA007, FEA006)
 		if (this.shouldShowDisplayModeToggle()) {
 			const currentMode = this.state.displayAs || DisplayMode.DEFAULT;
-			const isTopN = currentMode === DisplayMode.TOP_N;
 			
 			const toggleButton = controlsContainer.createEl('button', {
 				cls: 'backlink-counter-mode-toggle',
 				attr: { 
-					'aria-label': isTopN ? 'Switch to default view' : 'Switch to top-N bars view'
+					'aria-label': this.getDisplayModeLabel(currentMode)
 				}
 			});
 
 			// Use appropriate icon based on current mode
-			setIcon(toggleButton, isTopN ? 'list' : 'bar-chart-horizontal');
+			setIcon(toggleButton, this.getDisplayModeIcon(currentMode));
 			
 			toggleButton.addEventListener('click', () => {
-				const newMode = isTopN ? DisplayMode.DEFAULT : DisplayMode.TOP_N;
+				const newMode = this.getNextDisplayMode(currentMode);
 				this.onDisplayModeChange(newMode);
 			});
 		}
@@ -420,6 +425,19 @@ export class BacklinkCounterComponent {
 	}
 
 	/**
+	 * Render pie mode display (FEA006)
+	 */
+	private renderPieMode(): void {
+		// Create container for pie visualization
+		const pieContainer = this.container.createEl('div', { cls: 'backlink-counter-pie' });
+		
+		// Update PieRenderer container and render
+		this.pieRenderer = new PieRenderer(pieContainer);
+		const periodLabel = DateRangeCalculator.getPeriodLabel(this.state.selectedPeriod);
+		this.pieRenderer.render(this.counterResults, periodLabel);
+	}
+
+	/**
 	 * Show note selector modal to add a note
 	 */
 	private showNoteSelector(): void {
@@ -436,5 +454,53 @@ export class BacklinkCounterComponent {
 		const periodLabel = DateRangeCalculator.getPeriodLabel(this.state.selectedPeriod);
 		const backlinkWord = count === 1 ? 'backlink' : 'backlinks';
 		return `${backlinkWord} in the ${periodLabel}`;
+	}
+
+	/**
+	 * Get icon name for display mode (FEA007, FEA006)
+	 */
+	private getDisplayModeIcon(mode: DisplayMode): string {
+		switch (mode) {
+			case DisplayMode.DEFAULT:
+				return 'list';
+			case DisplayMode.TOP_N:
+				return 'bar-chart-2';
+			case DisplayMode.PIE:
+				return 'pie-chart';
+			default:
+				return 'list';
+		}
+	}
+
+	/**
+	 * Get aria label for display mode (FEA007, FEA006)
+	 */
+	private getDisplayModeLabel(mode: DisplayMode): string {
+		switch (mode) {
+			case DisplayMode.DEFAULT:
+				return 'Switch to bar chart view';
+			case DisplayMode.TOP_N:
+				return 'Switch to pie chart view';
+			case DisplayMode.PIE:
+				return 'Switch to list view';
+			default:
+				return 'Switch display mode';
+		}
+	}
+
+	/**
+	 * Get next display mode in cycle: default -> top-n -> pie -> default (FEA007, FEA006)
+	 */
+	private getNextDisplayMode(currentMode: DisplayMode): DisplayMode {
+		switch (currentMode) {
+			case DisplayMode.DEFAULT:
+				return DisplayMode.TOP_N;
+			case DisplayMode.TOP_N:
+				return DisplayMode.PIE;
+			case DisplayMode.PIE:
+				return DisplayMode.DEFAULT;
+			default:
+				return DisplayMode.DEFAULT;
+		}
 	}
 }
