@@ -10,6 +10,7 @@ import { YearlyTrackerCodeBlockProcessor } from './src/features/yearly-tracker-c
 import { MonthlyTrackerCodeBlockProcessor } from './src/features/monthly-tracker-code-block-processor';
 import { NoteInsightContextMenuManager } from './src/features/note-insight-context-menu-manager';
 import { VaultVisualizerSettingTab } from './src/ui/settings-tab';
+import { logger } from './src/utils/logger';
 
 /**
  * Vault Visualizer Plugin - Turn your notes into insight
@@ -41,6 +42,9 @@ export default class VaultVisualizerPlugin extends Plugin {
 	async onload() {
 		// Load settings
 		await this.loadSettings();
+
+		// Set log level from settings
+		logger.setLevel(this.settings.logLevel);
 
 		// Initialize settings service
 		this.settingsService = new SettingsService(this.settings);

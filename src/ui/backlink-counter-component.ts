@@ -8,6 +8,7 @@ import { NoteSelector } from './note-selector';
 import { TopNRenderer } from './top-n-renderer';
 import { PieRenderer } from './pie-renderer';
 import { TimeSeriesRenderer, buildTimeSeriesData } from './time-series-renderer';
+import { logger } from '../utils/logger';
 
 /**
  * Component that displays backlink count for watched notes over a selected time period
@@ -169,8 +170,6 @@ export class BacklinkCounterComponent {
 	private updateCounts(): void {
 		this.counterResults = [];
 
-		console.warn(this.state.notePath);
-
 		// Handle multiple note paths
 		if (this.state.notePath && this.state.notePath.length > 0) {
 			if(typeof this.state.notePath === 'string'){
@@ -178,10 +177,9 @@ export class BacklinkCounterComponent {
 			}
 			for (const notePath of this.state.notePath) {
 				const file = this.app.vault.getAbstractFileByPath(notePath);
-				console.warn(file);
 				if (file instanceof TFile) {
 					const backlinks = this.analysisService.getBacklinksForFile(file);
-					console.warn('[BacklinkCounter] Calculating count for note:', file.path, backlinks);
+					logger.warn('[BacklinkCounter] Calculating count for note:', file.path, backlinks);
 					const count = this.calculateCountForBacklinks(backlinks);
 					this.counterResults.push({
 						notePath: file.path,
@@ -206,7 +204,7 @@ export class BacklinkCounterComponent {
 		let totalCount = 0;
 
 		// DEBUG: Log date range for troubleshooting
-		console.log('[BacklinkCounter] Date range:', {
+		logger.log('[BacklinkCounter] Date range:', {
 			period: this.state.selectedPeriod,
 			startDate: dateRange.startDate.toISOString(),
 			endDate: dateRange.endDate.toISOString()
@@ -221,7 +219,7 @@ export class BacklinkCounterComponent {
 					if (fileDate) {
 						const isInRange = fileDate >= dateRange.startDate && fileDate <= dateRange.endDate;
 						// DEBUG: Log each daily note check
-						console.log('[BacklinkCounter] Checking daily note:', {
+						logger.log('[BacklinkCounter] Checking daily note:', {
 							file: backlinkInfo.file.path,
 							dateString,
 							fileDate: fileDate.toISOString(),
@@ -236,7 +234,7 @@ export class BacklinkCounterComponent {
 			}
 		}
 
-		console.log('[BacklinkCounter] Final count:', totalCount);
+		logger.log('[BacklinkCounter] Final count:', totalCount);
 		return totalCount;
 	}
 
@@ -461,10 +459,11 @@ export class BacklinkCounterComponent {
 		// Create container for pie visualization
 		const pieContainer = this.container.createEl('div', { cls: 'backlink-counter-pie' });
 		
-		// Update PieRenderer container and render
+		// Update PieRenderer container and render with colors from settings (FEA010)
 		this.pieRenderer = new PieRenderer(pieContainer);
 		const periodLabel = DateRangeCalculator.getPeriodLabel(this.state.selectedPeriod);
-		this.pieRenderer.render(this.counterResults, periodLabel);
+		const colors = this.settingsService.getSeriesColors();
+		this.pieRenderer.render(this.counterResults, periodLabel, colors);
 	}
 
 	/**

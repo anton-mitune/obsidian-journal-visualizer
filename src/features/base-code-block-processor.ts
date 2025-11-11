@@ -1,5 +1,6 @@
 import { App, Plugin, MarkdownPostProcessorContext, TFile, EventRef } from 'obsidian';
 import { CounterConfig, TimePeriod } from '../types';
+import { logger } from '../utils/logger';
 
 /**
  * Tracks a code block instance for cleanup and updates
@@ -203,7 +204,7 @@ export abstract class BaseCodeBlockProcessor {
 	): Promise<void> {
 		const canvasFile = this.getActiveCanvasFile();
 		if (!canvasFile) {
-			console.error('[BaseCodeBlockProcessor] No active canvas file found');
+			logger.error('[BaseCodeBlockProcessor] No active canvas file found');
 			return;
 		}
 
@@ -223,7 +224,7 @@ export abstract class BaseCodeBlockProcessor {
 			}
 
 			if (matchingNodes.length === 0) {
-				console.warn('[BaseCodeBlockProcessor] No matching canvas nodes found for ID:', instance.codeblockId);
+				logger.warn('[BaseCodeBlockProcessor] No matching canvas nodes found for ID:', instance.codeblockId);
 				return;
 			}
 
@@ -242,7 +243,7 @@ export abstract class BaseCodeBlockProcessor {
 			// Save canvas file
 			await this.app.vault.modify(canvasFile, JSON.stringify(canvasData, null, 2));
 		} catch (error) {
-			console.error('[BaseCodeBlockProcessor] Canvas update error:', error);
+			logger.error('[BaseCodeBlockProcessor] Canvas update error:', error);
 		}
 	}
 
@@ -257,7 +258,7 @@ export abstract class BaseCodeBlockProcessor {
 	): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 		if (!file || !(file instanceof TFile)) {
-			console.error('[BaseCodeBlockProcessor] File not found:', ctx.sourcePath);
+			logger.error('[BaseCodeBlockProcessor] File not found:', ctx.sourcePath);
 			return;
 		}
 
@@ -278,7 +279,7 @@ export abstract class BaseCodeBlockProcessor {
 			const updatedContent = updatedLines.join('\n');
 			await this.app.vault.modify(file, updatedContent);
 		} catch (error) {
-			console.error('[BaseCodeBlockProcessor] Note update error:', error);
+			logger.error('[BaseCodeBlockProcessor] Note update error:', error);
 		}
 	}
 
@@ -336,7 +337,7 @@ export abstract class BaseCodeBlockProcessor {
 
 		// If target block not found, return unchanged
 		if (blockStartIndex === -1 || blockEndIndex === -1) {
-			console.warn('[BaseCodeBlockProcessor] Target codeblock not found for ID:', codeblockId);
+			logger.warn('[BaseCodeBlockProcessor] Target codeblock not found for ID:', codeblockId);
 			return lines;
 		}
 

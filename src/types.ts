@@ -48,6 +48,7 @@ export interface VaultVisualizerSettings {
 	firstDayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sunday, 1 = Monday, etc.
 	maxWatchedNotes: number;
 	suggestedColorPalette: ColorPalette; // FEA010 Requirement 5
+	logLevel: number; // Log level for debugging (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR, 4=NONE)
 	series1Color: string;
 	series2Color: string;
 	series3Color: string;
@@ -64,6 +65,7 @@ export const DEFAULT_SETTINGS: VaultVisualizerSettings = {
 	firstDayOfWeek: 1, // Monday
 	maxWatchedNotes: 50,
 	suggestedColorPalette: ColorPalette.VIBRANT,
+	logLevel: 3, // ERROR by default
 	series1Color: '#8b5cf6', // purple
 	series2Color: '#3b82f6', // blue
 	series3Color: '#10b981', // green

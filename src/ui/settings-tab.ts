@@ -111,5 +111,28 @@ export class VaultVisualizerSettingTab extends PluginSettingTab {
 					// @ts-ignore - undocumented API
 					this.app.commands.executeCommandById('app:reload');
 				}));
+
+		// Advanced Settings Section (collapsed by default)
+		containerEl.createEl('h3', { text: 'Advanced Settings' });
+		const advancedContainer = containerEl.createEl('details', { cls: 'vault-visualizer-advanced-settings' });
+		const summary = advancedContainer.createEl('summary', { text: 'Show advanced settings' });
+
+		// Log Level Setting
+		new Setting(advancedContainer)
+			.setName('Log level')
+			.setDesc('Set the minimum log level for console output. Lower levels show more messages. Requires reload. You should not need to change this unless you are a developper troubleshooting an issue. Setting this to "Debug", or "Info" may produce a large volume of log messages and impact performance.')
+			.addDropdown(dropdown => dropdown
+				.addOption('0', 'Debug (all messages)')
+				.addOption('1', 'Info')
+				.addOption('2', 'Warning')
+				.addOption('3', 'Error (default)')
+				.addOption('4', 'None (silent)')
+				.setValue(String(this.plugin.settings.logLevel))
+				.onChange(async (value) => {
+					this.plugin.settings.logLevel = parseInt(value);
+					await this.plugin.saveSettings();
+				}));
+
+
 	}
 }

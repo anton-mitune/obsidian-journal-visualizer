@@ -2,7 +2,7 @@ import { App, Plugin, MarkdownPostProcessorContext, MarkdownRenderChild, TFile }
 import { BaseCodeBlockProcessor } from './base-code-block-processor';
 import { YearlyTrackerComponent } from '../ui/yearly-tracker-component';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
-
+import { logger } from '../utils/logger';
 /**
  * Configuration parsed from yearly code block
  */
@@ -153,7 +153,7 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 		ctx.addChild(renderChild);
 
 	} catch (error) {
-			console.error('[YearlyTrackerCodeBlockProcessor] Error:', error);
+			logger.error('[YearlyTrackerCodeBlockProcessor] Error:', error);
 			el.createEl('div', {
 				text: `Error: ${error.message}`,
 				cls: 'note-insight-error'

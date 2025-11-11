@@ -4,6 +4,7 @@ import { BacklinkCounterComponent } from '../ui/backlink-counter-component';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { SettingsService } from '../services/settings-service';
 import { TimePeriod, DisplayMode } from '../types';
+import { logger } from '../utils/logger';
 
 /**
  * Configuration parsed from counter code block
@@ -142,7 +143,7 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 				notePath: config.notePath // Store watched notes for metadata listener
 			});
 		} catch (error) {
-			console.error('[CounterCodeBlockProcessor] Error:', error);
+			logger.error('[CounterCodeBlockProcessor] Error:', error);
 			el.createEl('div', {
 				text: `Error rendering counter: ${error.message}`,
 				cls: 'note-insight-error'
@@ -191,7 +192,7 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 		newPeriod: TimePeriod
 	): Promise<void> {
 		const instance = this.instances.get(instanceId);
-		console.warn('[CounterCodeBlockProcessor] Period changing to', newPeriod, 'for instance', instanceId, instance);
+		logger.warn('[CounterCodeBlockProcessor] Period changing to', newPeriod, 'for instance', instanceId, instance);
 		if (!instance || instance.isUpdatingCodeblock) {
 			return;
 		}
@@ -244,7 +245,7 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 		instanceId: string,
 		notePath: string
 	): Promise<void> {
-		console.log('[CounterCodeBlockProcessor] Adding note to watch list:', notePath);
+		logger.log('[CounterCodeBlockProcessor] Adding note to watch list:', notePath);
 		const instance = this.instances.get(instanceId);
 
 		if (!instance || instance.isUpdatingCodeblock) {

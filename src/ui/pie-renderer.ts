@@ -19,8 +19,9 @@ export class PieRenderer {
 	 * Render pie chart for note counter results
 	 * @param results Array of note counter results to visualize
 	 * @param periodLabel Label describing the time period (e.g., "past 30 days")
+	 * @param colors Optional array of colors to use for the pie slices (FEA010)
 	 */
-	render(results: NoteCounterResult[], periodLabel: string): void {
+	render(results: NoteCounterResult[], periodLabel: string, colors?: string[]): void {
 		// Clear container
 		this.container.empty();
 
@@ -38,7 +39,7 @@ export class PieRenderer {
 		});
 
 		// For now, render placeholder content until Chart.js is properly integrated
-		this.renderPlaceholder(sortedResults, periodLabel);
+		this.renderPlaceholder(sortedResults, periodLabel, colors);
 	}
 
 	/**
@@ -58,8 +59,9 @@ export class PieRenderer {
 	/**
 	 * Render placeholder content showing the pie chart visualization
 	 * This will be replaced with actual Chart.js rendering once Chart.js is integrated
+	 * @param colors Optional array of colors to use for the pie slices (FEA010)
 	 */
-	private renderPlaceholder(results: NoteCounterResult[], periodLabel: string): void {
+	private renderPlaceholder(results: NoteCounterResult[], periodLabel: string, colors?: string[]): void {
 		// Clear existing content
 		this.container.empty();
 		
@@ -96,8 +98,8 @@ export class PieRenderer {
 		let gradientStops: string[] = [];
 		let currentAngle = 0; // Start at 0 degrees (12 o'clock)
 
-		// Define a color palette for the slices
-		const colors = [
+		// Use provided colors or fall back to default palette (FEA010)
+		const defaultColors = [
 			'#8b5cf6', // purple
 			'#3b82f6', // blue
 			'#10b981', // green
@@ -107,11 +109,12 @@ export class PieRenderer {
 			'#14b8a6', // teal
 			'#f97316', // orange
 		];
+		const colorPalette = colors || defaultColors;
 
 		results.forEach((result, index) => {
 			const percentage = totalCount > 0 ? (result.count / totalCount) * 100 : 0;
 			const angleDegrees = (percentage / 100) * 360;
-			const color = colors[index % colors.length];
+			const color = colorPalette[index % colorPalette.length];
 			
 			const startAngle = currentAngle;
 			const endAngle = currentAngle + angleDegrees;
@@ -143,7 +146,7 @@ export class PieRenderer {
 			const colorBox = legendItem.createEl('div', {
 				cls: 'pie-legend-color'
 			});
-			colorBox.style.backgroundColor = colors[index % colors.length];
+			colorBox.style.backgroundColor = colorPalette[index % colorPalette.length];
 
 			// Legend text
 			const legendText = legendItem.createEl('div', {
