@@ -3,16 +3,17 @@ import { TimePeriod, CounterState, BacklinkInfo, NoteCounterResult, DisplayMode 
 import { DateRangeCalculator } from '../utils/date-range-calculator';
 import { DailyNoteClassifier } from '../utils/daily-note-classifier';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
+import { SettingsService } from '../services/settings-service';
 import { NoteSelector } from './note-selector';
 import { TopNRenderer } from './top-n-renderer';
 import { PieRenderer } from './pie-renderer';
 import { TimeSeriesRenderer, buildTimeSeriesData } from './time-series-renderer';
-import { MAX_WATCHED_NOTES } from '../constants';
 
 /**
  * Component that displays backlink count for watched notes over a selected time period
  * FEA005: Backlink Count Tracker
  * FEA009: Multiple Notes Watching
+ * FEA010: Reacts to settings changes (firstDayOfWeek, maxWatchedNotes, series colors)
  * Supports:
  * - Single note watching (original feature)
  * - Multiple notes watching (FEA009)
@@ -22,6 +23,7 @@ export class BacklinkCounterComponent {
 	private app: App;
 	private classifier: DailyNoteClassifier;
 	private analysisService: BacklinkAnalysisService;
+	private settingsService: SettingsService;
 	private state: CounterState;
 	private counterResults: NoteCounterResult[] = [];
 	private topNRenderer: TopNRenderer;
@@ -31,12 +33,14 @@ export class BacklinkCounterComponent {
 	private onNoteAddedCallback?: (notePath: string) => void;
 	private onNoteRemovedCallback?: (notePath: string) => void;
 	private onDisplayModeChangeCallback?: (mode: DisplayMode) => void;
+	private unsubscribeSettings?: () => void;
 
 	constructor(
 		container: HTMLElement, 
 		app: App,
 		classifier: DailyNoteClassifier,
 		analysisService: BacklinkAnalysisService,
+		settingsService: SettingsService,
 		onPeriodChangeCallback?: (period: TimePeriod) => void,
 		onNoteAddedCallback?: (notePath: string) => void,
 		onNoteRemovedCallback?: (notePath: string) => void,
@@ -46,6 +50,7 @@ export class BacklinkCounterComponent {
 		this.app = app;
 		this.classifier = classifier;
 		this.analysisService = analysisService;
+		this.settingsService = settingsService;
 		this.onPeriodChangeCallback = onPeriodChangeCallback;
 		this.onNoteAddedCallback = onNoteAddedCallback;
 		this.onNoteRemovedCallback = onNoteRemovedCallback;
@@ -61,6 +66,23 @@ export class BacklinkCounterComponent {
 		this.pieRenderer = new PieRenderer(this.container);
 		// Initialize TimeSeriesRenderer with a placeholder container that will be set during render
 		this.timeSeriesRenderer = new TimeSeriesRenderer(this.container);
+
+		// Subscribe to settings changes (FEA010)
+		// Re-render when relevant settings change (firstDayOfWeek, maxWatchedNotes, series colors)
+		this.unsubscribeSettings = this.settingsService.subscribe(() => {
+			this.updateCounts();
+			this.render();
+		});
+	}
+
+	/**
+	 * Cleanup method - unsubscribe from settings
+	 * Should be called when component is destroyed
+	 */
+	cleanup(): void {
+		if (this.unsubscribeSettings) {
+			this.unsubscribeSettings();
+		}
 	}
 
 	/**
@@ -179,7 +201,8 @@ export class BacklinkCounterComponent {
 			return 0;
 		}
 
-		const dateRange = DateRangeCalculator.calculateDateRange(this.state.selectedPeriod);
+		const firstDayOfWeek = this.settingsService.getSettings().firstDayOfWeek;
+		const dateRange = DateRangeCalculator.calculateDateRange(this.state.selectedPeriod, firstDayOfWeek);
 		let totalCount = 0;
 
 		// DEBUG: Log date range for troubleshooting
@@ -328,13 +351,14 @@ export class BacklinkCounterComponent {
 		// Add Note button (only show when callbacks provided)
 		if (this.onNoteAddedCallback) {
 			const currentCount = this.state.notePath?.length || 0;
-			const isAtLimit = currentCount >= MAX_WATCHED_NOTES;
+			const maxWatchedNotes = this.settingsService.getSettings().maxWatchedNotes;
+			const isAtLimit = currentCount >= maxWatchedNotes;
 			
 			const addButton = controlsContainer.createEl('button', { 
 				cls: `backlink-counter-add-button ${isAtLimit ? 'disabled' : ''}`,
 				attr: { 
 					'aria-label': isAtLimit 
-						? `Maximum limit of ${MAX_WATCHED_NOTES} notes reached` 
+						? `Maximum limit of ${maxWatchedNotes} notes reached` 
 						: 'Add note to watch'
 				}
 			});
@@ -451,7 +475,8 @@ export class BacklinkCounterComponent {
 		const timeSeriesContainer = this.container.createEl('div', { cls: 'backlink-counter-time-series' });
 		
 		// Get time-series data for each watched note
-		const dateRange = DateRangeCalculator.calculateDateRange(this.state.selectedPeriod);
+		const firstDayOfWeek = this.settingsService.getSettings().firstDayOfWeek;
+		const dateRange = DateRangeCalculator.calculateDateRange(this.state.selectedPeriod, firstDayOfWeek);
 		const timeSeriesData: Array<{ notePath: string; noteTitle: string; data: any }> = [];
 		
 		if (this.state.notePath && this.state.notePath.length > 0) {
@@ -471,11 +496,8 @@ export class BacklinkCounterComponent {
 			}
 		}
 		
-		// Build series data and render
-		const colors = [
-			'#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', 
-			'#ef4444', '#ec4899', '#14b8a6', '#f97316'
-		];
+		// Build series data and render using colors from settings (FEA010)
+		const colors = this.settingsService.getSeriesColors();
 		const seriesData = buildTimeSeriesData(timeSeriesData, colors);
 		
 		this.timeSeriesRenderer = new TimeSeriesRenderer(timeSeriesContainer);

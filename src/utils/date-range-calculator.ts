@@ -2,31 +2,15 @@ import { TimePeriod, DateRange } from '../types';
 
 /**
  * Utility class for converting TimePeriod enums to concrete DateRange objects
+ * FEA010: Uses firstDayOfWeek from plugin settings
  */
 export class DateRangeCalculator {
 	/**
-	 * Get the week start day from Obsidian's moment locale configuration
-	 * Returns 0 for Sunday, 1 for Monday, etc.
-	 */
-	private static getWeekStartDay(): number {
-		// TODO later, obsidian does give user ability to choose first day of week natively, it tries to guess it, but often fails.
-		// TODO later, add a settings page for the plugin to let user explicitly set week start day if needed.
-		// Access Obsidian's moment instance to get locale-specific week start
-		const moment = (window as any).moment;
-		if (moment && moment.localeData) {
-			const weekStart = moment.localeData().firstDayOfWeek();
-			console.log('[DateRangeCalculator] Week start day from moment:', weekStart);
-			return weekStart;
-		}
-		// Fallback to Monday if moment is not available
-		console.log('[DateRangeCalculator] Moment not available, using fallback: Monday (1)');
-		return 1;
-	}
-
-	/**
 	 * Convert a TimePeriod to a DateRange
+	 * @param period The time period to convert
+	 * @param firstDayOfWeek First day of week (0=Sunday, 1=Monday, etc.) - used for THIS_WEEK calculation
 	 */
-	static calculateDateRange(period: TimePeriod): DateRange {
+	static calculateDateRange(period: TimePeriod, firstDayOfWeek: number = 1): DateRange {
 		const now = new Date();
 		let startDate: Date;
 		let endDate: Date;
@@ -69,8 +53,8 @@ export class DateRangeCalculator {
 				break;
 
 		case TimePeriod.THIS_WEEK: {
-			// Get week start day from Obsidian settings
-			const weekStartDay = this.getWeekStartDay();
+			// Use week start day from settings (FEA010)
+			const weekStartDay = firstDayOfWeek;
 			const currentDayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
 			
 			// Calculate days to subtract to get to start of week

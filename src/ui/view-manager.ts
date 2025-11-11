@@ -2,6 +2,7 @@ import { App, Plugin, WorkspaceLeaf } from 'obsidian';
 import { NoteInsightsView, NOTE_INSIGHTS_VIEW_TYPE } from './note-insights-view';
 import { DailyNoteBacklinkInfo, YearBounds, MonthBounds } from '../types';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
+import { SettingsService } from '../services/settings-service';
 
 /**
  * Manages the Note Insights view lifecycle and registration
@@ -14,11 +15,18 @@ export class ViewManager {
 	private onYearChangeCallback?: (year: number) => void;
 	private onMonthChangeCallback?: (month: number, year: number) => void;
 	private analysisService: BacklinkAnalysisService;
+	private settingsService: SettingsService;
 
-	constructor(app: App, plugin: Plugin, analysisService: BacklinkAnalysisService) {
+	constructor(
+		app: App, 
+		plugin: Plugin, 
+		analysisService: BacklinkAnalysisService,
+		settingsService: SettingsService
+	) {
 		this.app = app;
 		this.plugin = plugin;
 		this.analysisService = analysisService;
+		this.settingsService = settingsService;
 	}
 
 	/**
@@ -77,6 +85,8 @@ export class ViewManager {
 				
 				// Ensure analysis service is set (in case view was created before service was available)
 				this.view.setAnalysisService(this.analysisService);
+				// Ensure settings service is set (FEA010)
+				this.view.setSettingsService(this.settingsService);
 			} else {
 				// Wait for workspace to be ready
 				if (!this.app.workspace.layoutReady) {
@@ -94,6 +104,8 @@ export class ViewManager {
 					
 					// Set analysis service
 					this.view.setAnalysisService(this.analysisService);
+					// Set settings service (FEA010)
+					this.view.setSettingsService(this.settingsService);
 					
 					// Set year change callback if available
 					if (this.onYearChangeCallback && this.view) {

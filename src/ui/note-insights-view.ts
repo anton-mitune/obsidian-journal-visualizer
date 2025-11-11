@@ -5,6 +5,7 @@ import { MonthlyTrackerComponent } from './monthly-tracker-component';
 import { BacklinkCounterComponent } from './backlink-counter-component';
 import { DailyNoteClassifier } from '../utils/daily-note-classifier';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
+import { SettingsService } from '../services/settings-service';
 
 export const NOTE_INSIGHTS_VIEW_TYPE = 'note-insights-view';
 
@@ -23,6 +24,7 @@ export class NoteInsightsView extends ItemView {
 	private onMonthChangeCallback?: (month: number, year: number) => void;
 	private classifier: DailyNoteClassifier;
 	private analysisService: BacklinkAnalysisService | null = null;
+	private settingsService: SettingsService | null = null;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -34,6 +36,14 @@ export class NoteInsightsView extends ItemView {
 	 */
 	setAnalysisService(service: BacklinkAnalysisService): void {
 		this.analysisService = service;
+	}
+
+	/**
+	 * Set the settings service (called by ViewManager)
+	 * FEA010: Plugin Settings
+	 */
+	setSettingsService(service: SettingsService): void {
+		this.settingsService = service;
 	}
 
 	getViewType(): string {
@@ -155,8 +165,8 @@ export class NoteInsightsView extends ItemView {
 			cls: 'note-insights-label'
 		});
 		
-		// Only create counter if we have analysisService
-		if (this.analysisService) {
+		// Only create counter if we have analysisService and settingsService
+		if (this.analysisService && this.settingsService) {
 			// Create counter container
 			const counterContainer = counterSection.createEl('div', { cls: 'note-insights-backlink-counter' });
 			// Create counter component (no callbacks needed for view panel - it doesn't persist or allow editing)
@@ -164,7 +174,8 @@ export class NoteInsightsView extends ItemView {
 				counterContainer, 
 				this.app,
 				this.classifier, 
-				this.analysisService
+				this.analysisService,
+				this.settingsService
 				// No callbacks - view panel is read-only display
 			);
 			// Get backlinks for current note and update

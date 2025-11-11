@@ -1,12 +1,37 @@
 import { TFile } from 'obsidian';
 
+/**
+ * Plugin settings interface
+ * FEA010: Plugin Settings
+ */
 export interface VaultVisualizerSettings {
-	// Currently no settings needed for FEA001
-	// Future settings will be added here
+	firstDayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sunday, 1 = Monday, etc.
+	maxWatchedNotes: number;
+	series1Color: string;
+	series2Color: string;
+	series3Color: string;
+	series4Color: string;
+	series5Color: string;
+	series6Color: string;
+	series7Color: string;
+	series8Color: string;
+	series9Color: string;
+	series10Color: string;
 }
 
 export const DEFAULT_SETTINGS: VaultVisualizerSettings = {
-	// Default values will be added as settings are introduced
+	firstDayOfWeek: 1, // Monday
+	maxWatchedNotes: 50,
+	series1Color: '#8b5cf6', // purple
+	series2Color: '#3b82f6', // blue
+	series3Color: '#10b981', // green
+	series4Color: '#f59e0b', // amber
+	series5Color: '#ef4444', // red
+	series6Color: '#ec4899', // pink
+	series7Color: '#14b8a6', // teal
+	series8Color: '#f97316', // orange
+	series9Color: '#6366f1', // indigo
+	series10Color: '#84cc16', // lime
 };
 
 export interface DailyNoteBacklinkInfo {

@@ -2,12 +2,14 @@ import { Plugin } from 'obsidian';
 import { VaultVisualizerSettings, DEFAULT_SETTINGS } from './src/types';
 import { DailyNoteClassifier } from './src/utils/daily-note-classifier';
 import { BacklinkAnalysisService } from './src/services/backlink-analysis-service';
+import { SettingsService } from './src/services/settings-service';
 import { BacklinkWatcher } from './src/features/backlink-watcher';
 import { ViewManager } from './src/ui/view-manager';
 import { CounterCodeBlockProcessor } from './src/features/counter-code-block-processor';
 import { YearlyTrackerCodeBlockProcessor } from './src/features/yearly-tracker-code-block-processor';
 import { MonthlyTrackerCodeBlockProcessor } from './src/features/monthly-tracker-code-block-processor';
 import { NoteInsightContextMenuManager } from './src/features/note-insight-context-menu-manager';
+import { VaultVisualizerSettingTab } from './src/ui/settings-tab';
 
 /**
  * Vault Visualizer Plugin - Turn your notes into insight
@@ -17,9 +19,16 @@ import { NoteInsightContextMenuManager } from './src/features/note-insight-conte
  * - FEA002: Yearly tracker visualization
  * - FEA003: Monthly tracker visualization
  * - FEA004: Canvas note insight nodes (code block rendering)
+ * - FEA005: Backlink count tracker
+ * - FEA006: Pie display mode
+ * - FEA007: Top N display mode
+ * - FEA008: Time series display mode
+ * - FEA009: Multiple notes watching
+ * - FEA010: Plugin settings
  */
 export default class VaultVisualizerPlugin extends Plugin {
 	settings: VaultVisualizerSettings;
+	settingsService: SettingsService;
 	private dailyNoteClassifier: DailyNoteClassifier;
 	private analysisService: BacklinkAnalysisService;
 	private backlinkWatcher: BacklinkWatcher;
@@ -33,10 +42,16 @@ export default class VaultVisualizerPlugin extends Plugin {
 		// Load settings
 		await this.loadSettings();
 
+		// Initialize settings service
+		this.settingsService = new SettingsService(this.settings);
+
+		// Register settings tab
+		this.addSettingTab(new VaultVisualizerSettingTab(this.app, this));
+
 		// Initialize components
 		this.dailyNoteClassifier = new DailyNoteClassifier(this.app);
 		this.analysisService = new BacklinkAnalysisService(this.app, this.dailyNoteClassifier);
-		this.viewManager = new ViewManager(this.app, this, this.analysisService);
+		this.viewManager = new ViewManager(this.app, this, this.analysisService, this.settingsService);
 		
 		// Register the view with Obsidian
 		this.viewManager.registerView();
@@ -68,7 +83,8 @@ export default class VaultVisualizerPlugin extends Plugin {
 		this.counterProcessor = new CounterCodeBlockProcessor(
 			this.app,
 			this,
-			this.analysisService
+			this.analysisService,
+			this.settingsService
 		);
 		this.counterProcessor.register();
 
@@ -121,5 +137,9 @@ export default class VaultVisualizerPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		// Update settings service to notify listeners
+		if (this.settingsService) {
+			this.settingsService.updateSettings(this.settings);
+		}
 	}
 }

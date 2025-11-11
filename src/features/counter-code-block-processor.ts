@@ -2,8 +2,8 @@ import { App, Plugin, MarkdownPostProcessorContext, TFile, Notice } from 'obsidi
 import { BaseCodeBlockProcessor, CodeBlockInstance } from './base-code-block-processor';
 import { BacklinkCounterComponent } from '../ui/backlink-counter-component';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
+import { SettingsService } from '../services/settings-service';
 import { TimePeriod, DisplayMode } from '../types';
-import { MAX_WATCHED_NOTES } from '../constants';
 
 /**
  * Configuration parsed from counter code block
@@ -21,15 +21,18 @@ interface CounterCodeBlockConfig {
  */
 export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 	private analysisService: BacklinkAnalysisService;
+	private settingsService: SettingsService;
 	private config?: CounterCodeBlockConfig;
 
 	constructor(
 		app: App,
 		plugin: Plugin,
-		analysisService: BacklinkAnalysisService
+		analysisService: BacklinkAnalysisService,
+		settingsService: SettingsService
 	) {
 		super(app, plugin);
 		this.analysisService = analysisService;
+		this.settingsService = settingsService;
 	}
 
 	/**
@@ -88,6 +91,7 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 				this.app,
 				this.analysisService.getClassifier(),
 				this.analysisService,
+				this.settingsService,
 				(period: TimePeriod) => this.onPeriodChanged(ctx, config.id, period),
 				(notePath: string) => this.onNoteAdded(ctx, config.id, notePath),
 				(notePath: string) => this.onNoteRemoved(ctx, config.id, notePath),
