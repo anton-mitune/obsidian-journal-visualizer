@@ -314,7 +314,11 @@ export abstract class BaseCodeBlockProcessor {
 				line.startsWith('id:') &&
 				line.includes(codeblockId)
 			) {
-				inTargetBlock = true;
+				// make sure we're doing exact ID match (not substring)
+				const idMatch = line.match(/^id:\s*(.+)$/);
+				if (idMatch && idMatch[1].trim() === codeblockId) {
+					inTargetBlock = true;
+				}
 			}
 			// End of a codeblock
 			else if (line === '```' && blockStartIndex !== -1) {
