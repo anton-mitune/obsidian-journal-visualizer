@@ -17,8 +17,13 @@ Version: 3.0
 **User Story:** As a note author, I want to navigate between different years in the yearly tracker (previous/next year buttons and/or year selector), so that I can view historical tracking data and see how my note's relevance has changed over time.
 
 ### Requirement 3 - Additional info on hover
-**User Story:** As a note author, I want to see a short summary about the backlinks when I hover over a day in the yearly tracker, so that I can understand how many backlinks were made from what line of daily notes on that specific day.
+**User Story:** As a note author, I want to see a short summary about the backlinks when I hover over a day in the yearly tracker, so that I can understand how many backlinks were made from what line of daily notes on that specific day. It should use a simple aria hidden tooltip so it stays discrete.
 
+### Requirement 4 - shortcut to watched note
+**User Story:** As a note author, I want to be able to click on the title of the note being tracked in the yearly tracker component header to quickly open that note, so that I can easily access and edit the note without needing to search for it manually.
+
+### Requirement 5 - shortcut to journal entry
+**User Story:** As a note author, I want to be able to click on a day in the yearly tracker that has backlinks to quickly open the corresponding daily note for that day, so that I can easily review the context in which my note was linked.
 
 ### Assumptions and rules
 - the yearly tracker displays all days from January 1st to December 31st of the selected year (defaults to current year)
@@ -68,6 +73,13 @@ The Yearly Tracker component can be displayed in multiple contexts:
 notePath: path/to/note.md
 year: 2024
 ```
+
+### Handling click events
+
+As per Requirements 4 and 5, the YearlyTrackerComponent should handle click events internally to open notes:
+1. **imports the Obsidian `App` instance** in its constructor
+2. **Handle note opening internally** when the user clicks on elements
+
 
 ### Canvas Text Nodes (FEA004)
 - Same functionality as markdown code blocks
