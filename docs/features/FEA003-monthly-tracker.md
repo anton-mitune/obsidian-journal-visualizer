@@ -17,7 +17,13 @@
 **User Story:** As a note author, I want the monthly tracker to operate independently from the yearly tracker, so that I can examine different time periods simultaneously (e.g., monthly tracker showing March 2024 while yearly tracker shows 2025).
 
 ### Requirement 4 - Additional info on hover
-**User Story:** As a note author, I want to see a short summary about the backlinks when I hover over a day in the monthly tracker, so that I can understand how many backlinks were made from what line of daily notes on that specific day.
+**User Story:** As a note author, I want to see a short summary about the backlinks when I hover over a day in the monthly tracker, so that I can understand how many backlinks were made from what line of daily notes on that specific day. It should use a simple aria hidden tooltip so it stays discrete.
+
+### Requirement 5 - shortcut to watched note
+**User Story:** As a note author, I want to be able to click on the title of the note being tracked in the monthly tracker component header to quickly open that note, so that I can easily access and edit the note without needing to search for it manually.
+
+### Requirement 6 - shortcut to journal entry
+**User Story:** As a note author, I want to be able to click on a day in the monthly tracker that has backlinks to quickly open the corresponding daily note for that day, so that I can easily review the context in which my note was linked.
 
 ### Assumptions and rules
 - the monthly tracker displays all days from the 1st to the last day of the selected month/year (defaults to current month)
