@@ -1,3 +1,4 @@
+import { App } from 'obsidian';
 import { DailyNoteYearlyData, DailyNoteBacklinkSummary, YearNavigationState, YearBounds } from '../types';
 
 /**
@@ -5,16 +6,17 @@ import { DailyNoteYearlyData, DailyNoteBacklinkSummary, YearNavigationState, Yea
  * Similar to GitHub contribution graph or Anilist activity tracker
  */
 export class YearlyTrackerComponent {
+	private app: App;
 	private container: HTMLElement;
 	private yearlyData: DailyNoteYearlyData;
 	private maxIntensity: number = 5; // Cap intensity at 5 backlinks for consistent coloring
-	private popover: HTMLElement | null = null;
-	private popoverTimeout: NodeJS.Timeout | null = null;
 	private navigationState: YearNavigationState;
 	private yearBounds: YearBounds;
 	private onYearChangeCallback?: (year: number) => void;
+	private watchedNotePath: string | null = null;
 
-	constructor(container: HTMLElement, onYearChange?: (year: number) => void) {
+	constructor(app: App, container: HTMLElement, onYearChange?: (year: number) => void) {
+		this.app = app;
 		this.container = container;
 		this.yearlyData = {};
 		this.onYearChangeCallback = onYearChange;
@@ -35,9 +37,19 @@ export class YearlyTrackerComponent {
 	/**
 	 * Update the tracker with new yearly data
 	 */
-	updateData(yearlyData: DailyNoteYearlyData): void {
+	updateData(yearlyData: DailyNoteYearlyData, watchedNotePath?: string): void {
 		this.yearlyData = yearlyData;
+		if (watchedNotePath !== undefined) {
+			this.watchedNotePath = watchedNotePath;
+		}
 		this.render();
+	}
+
+	/**
+	 * Set the watched note path
+	 */
+	setWatchedNotePath(path: string): void {
+		this.watchedNotePath = path;
 	}
 
 	/**
@@ -99,8 +111,11 @@ export class YearlyTrackerComponent {
 		// Create tracker container
 		const trackerContainer = this.container.createEl('div', { cls: 'yearly-tracker-container' });
 
-		// Create popover for hover details
-		this.createPopover(trackerContainer);
+
+		// Create watched note title header if available (FEA002 Requirement 4)
+		if (this.watchedNotePath) {
+			this.createNoteHeader(trackerContainer);
+		}
 
 		// Create header with year navigation
 		this.createHeader(trackerContainer);
@@ -129,13 +144,29 @@ export class YearlyTrackerComponent {
 	}
 
 	/**
-	 * Create the popover element for showing hover details
+	 * Create note header with clickable title
+	 * FEA002 Requirement 4: Click on note title to open the watched note
 	 */
-	private createPopover(container: HTMLElement): void {
-		this.popover = container.createEl('div', { cls: 'yearly-tracker-popover' });
-		this.popover.style.display = 'none';
-		this.popover.style.position = 'absolute';
-		this.popover.style.zIndex = '1000';
+	private createNoteHeader(container: HTMLElement): void {
+		const noteHeader = container.createEl('div', { cls: 'yearly-tracker-note-header' });
+		
+		// Get note name from path
+		const noteName = this.watchedNotePath?.split('/').pop()?.replace('.md', '') || 'Unknown Note';
+		
+		const noteTitle = noteHeader.createEl('h4', {
+			text: noteName,
+			cls: 'yearly-tracker-note-title'
+		});
+
+		// Make title clickable
+		noteTitle.addEventListener('click', async () => {
+			if (this.watchedNotePath) {
+				const file = this.app.vault.getAbstractFileByPath(this.watchedNotePath);
+				if (file) {
+					await this.app.workspace.getLeaf(false).openFile(file as any);
+				}
+			}
+		});
 	}
 
 	/**
@@ -184,145 +215,9 @@ export class YearlyTrackerComponent {
 		});
 	}
 
-	/**
-	 * Show popover with backlink details
-	 */
-	private showPopover(element: HTMLElement, date: Date, summary: DailyNoteBacklinkSummary): void {
-		if (!this.popover) return;
 
-		// Clear any existing timeout
-		if (this.popoverTimeout) {
-			clearTimeout(this.popoverTimeout);
-			this.popoverTimeout = null;
-		}
 
-		// Update popover content
-		this.updatePopoverContent(date, summary);
 
-		// Position popover relative to the square
-		this.positionPopover(element);
-
-		// Show popover immediately
-		this.popover.style.display = 'block';
-	}
-
-	/**
-	 * Hide popover with slight delay
-	 */
-	private hidePopover(): void {
-		if (!this.popover) return;
-
-		// Add small delay to prevent flickering when moving between squares
-		this.popoverTimeout = setTimeout(() => {
-			if (this.popover) {
-				this.popover.style.display = 'none';
-			}
-		}, 150);
-	}
-
-	/**
-	 * Update popover content with backlink details
-	 */
-	private updatePopoverContent(date: Date, summary: DailyNoteBacklinkSummary): void {
-		if (!this.popover) return;
-
-		this.popover.empty();
-
-		// Create popover header
-		const header = this.popover.createEl('div', { cls: 'yearly-tracker-popover-header' });
-		const dateString = date.toLocaleDateString('en-GB', {
-			weekday: 'long',
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		});
-		header.createEl('div', {
-			text: dateString,
-			cls: 'yearly-tracker-popover-date'
-		});
-
-		// Create content area
-		const content = this.popover.createEl('div', { cls: 'yearly-tracker-popover-content' });
-
-		if (summary.linkCount === 0) {
-			content.createEl('div', {
-				text: 'No backlinks on this day',
-				cls: 'yearly-tracker-popover-empty'
-			});
-		} else {
-			// Backlink count
-			const countEl = content.createEl('div', { cls: 'yearly-tracker-popover-count' });
-			countEl.createEl('span', {
-				text: summary.linkCount.toString(),
-				cls: 'yearly-tracker-popover-count-number'
-			});
-			countEl.createEl('span', {
-				text: ` backlink${summary.linkCount > 1 ? 's' : ''}`,
-				cls: 'yearly-tracker-popover-count-label'
-			});
-
-			// Show lines if available
-			if (summary.lines && summary.lines.length > 0) {
-				const linesContainer = content.createEl('div', { cls: 'yearly-tracker-popover-lines' });
-				linesContainer.createEl('div', {
-					text: 'Context:',
-					cls: 'yearly-tracker-popover-lines-header'
-				});
-
-				const linesList = linesContainer.createEl('div', { cls: 'yearly-tracker-popover-lines-list' });
-				summary.lines.slice(0, 5).forEach(line => {
-					linesList.createEl('div', {
-						text: line.trim(),
-						cls: 'yearly-tracker-popover-line'
-					});
-				});
-
-				if (summary.lines.length > 5) {
-					linesList.createEl('div', {
-						text: `... and ${summary.lines.length - 5} more`,
-						cls: 'yearly-tracker-popover-more'
-					});
-				}
-			}
-		}
-	}
-
-	/**
-	 * Position popover relative to the hovered square
-	 */
-	private positionPopover(element: HTMLElement): void {
-		if (!this.popover) return;
-
-		// First, position popover off-screen to measure its dimensions
-		this.popover.style.left = '-9999px';
-		this.popover.style.top = '-9999px';
-		this.popover.style.display = 'block';
-
-		const rect = element.getBoundingClientRect();
-		const containerRect = this.container.getBoundingClientRect();
-		const popoverRect = this.popover.getBoundingClientRect();
-
-		// Calculate position relative to the container
-		let left = rect.left - containerRect.left + rect.width / 2;
-		let top = rect.top - containerRect.top - 10; // 10px above the square
-
-		// Adjust horizontal position to keep popover in bounds
-		const popoverWidth = popoverRect.width;
-		if (left + popoverWidth / 2 > containerRect.width) {
-			left = containerRect.width - popoverWidth / 2 - 10;
-		}
-		if (left - popoverWidth / 2 < 0) {
-			left = popoverWidth / 2 + 10;
-		}
-
-		const popoverHeight = popoverRect.height;
-
-		this.popover.removeClass('yearly-tracker-popover-below');
-		top = top - popoverHeight; // Position above the square
-
-		this.popover.style.left = `${left}px`;
-		this.popover.style.top = `${top}px`;
-	}
 
 	/**
 	 * Generate all days for the given year
@@ -471,15 +366,34 @@ export class YearlyTrackerComponent {
 		}
 		element.setAttribute('aria-label', ariaText);
 
-		// Add hover interactions for popover
-		element.addEventListener('mouseenter', () => {
-			element.addClass('yearly-tracker-square-hover');
-			this.showPopover(element, date, summary);
-		});
+		// FEA002 Requirement 5: Make days with backlinks clickable
+		if (summary.linkCount > 0) {
+			element.addClass('yearly-tracker-square-clickable');
+			element.addEventListener('click', async () => {
+				await this.openDailyNote(date);
+			});
+		}
 
-		element.addEventListener('mouseleave', () => {
-			element.removeClass('yearly-tracker-square-hover');
-			this.hidePopover();
-		});
+	}
+
+	/**
+	 * Open the daily note for a specific date
+	 * FEA002 Requirement 5: Click on day to open corresponding daily note
+	 */
+	private async openDailyNote(date: Date): Promise<void> {
+		// Format date as YYYY-MM-DD for daily note filename
+		const dateString = this.formatDateString(date);
+		
+		// Search for daily note with this date
+		const files = this.app.vault.getMarkdownFiles();
+		for (const file of files) {
+			if (file.basename.includes(dateString) || file.path.includes(dateString)) {
+				await this.app.workspace.getLeaf(false).openFile(file);
+				return;
+			}
+		}
+		
+		// If no file found, show notice
+		// Note: We could create the file here, but that's beyond the scope of FEA002
 	}
 }

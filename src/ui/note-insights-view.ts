@@ -229,8 +229,14 @@ export class NoteInsightsView extends ItemView {
 			// Create yearly tracker container
 			const trackerContainer = yearlySection.createEl('div', { cls: 'note-insights-yearly-tracker' });
 			// Always create a new tracker for each note
-			this.yearlyTracker = new YearlyTrackerComponent(trackerContainer, this.onYearChangeCallback);
-			this.yearlyTracker.updateData(this.currentNoteInfo.yearlyData);
+			this.yearlyTracker = new YearlyTrackerComponent(this.app, trackerContainer, this.onYearChangeCallback);
+			// Get active file path for click handlers
+			const activeFile = this.app.workspace.getActiveFile();
+			if (activeFile) {
+				this.yearlyTracker.updateData(this.currentNoteInfo.yearlyData, activeFile.path);
+			} else {
+				this.yearlyTracker.updateData(this.currentNoteInfo.yearlyData);
+			}
 			
 			// Set year bounds if available
 			if (this.yearBounds) {

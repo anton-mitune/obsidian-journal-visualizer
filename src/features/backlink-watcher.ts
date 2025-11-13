@@ -3,7 +3,7 @@ import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { DailyNoteBacklinkInfo, YearBounds, MonthBounds } from '../types';
 
 /**
- * Component that watches for note changes and triggers backlink count updates
+ * watches for note changes and triggers backlink count updates
  */
 export class BacklinkWatcher {
 	private app: App;

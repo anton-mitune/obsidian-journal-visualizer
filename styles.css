@@ -109,6 +109,7 @@
     border-radius: 6px;
     border: 1px solid var(--background-modifier-border);
     margin: 8px 0;
+	cursor: default;
 }
 
 .note-insight-title {
@@ -164,6 +165,24 @@
 .yearly-tracker-container {
     margin-top: 16px;
     position: relative; /* For popover positioning */
+}
+
+/* Note Header (FEA002 Requirement 4) */
+.yearly-tracker-note-header {
+    margin-bottom: 12px;
+}
+
+.yearly-tracker-note-title {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--text-normal);
+    margin: 0 0 12px 0;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.yearly-tracker-note-title:hover {
+    color: var(--text-accent);
 }
 
 .yearly-tracker-header {
@@ -282,18 +301,27 @@
     height: 11px;
     border-radius: 2px;
     border: 1px solid var(--background-modifier-border-hover);
-    cursor: pointer;
     transition: all 0.1s ease;
 }
 
 .yearly-tracker-square-empty {
     visibility: hidden;
+	cursor: default;
 }
 
 .yearly-tracker-square-hover {
     border-color: var(--text-accent);
     transform: scale(1.1);
     z-index: 1;
+}
+
+/* Clickable squares (FEA002 Requirement 5) */
+.yearly-tracker-square-clickable {
+    cursor: pointer;
+}
+
+.yearly-tracker-square-clickable:hover {
+    transform: scale(1.15);
 }
 
 /* Intensity color scale */

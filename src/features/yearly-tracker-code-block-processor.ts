@@ -93,16 +93,17 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 		// Create container
 		const container = el.createEl('div', { cls: 'note-insight-code-block yearly' });
-		container.createEl('h4', { text: noteInfo.noteTitle, cls: 'note-insight-title' });
 
 		// Create yearly tracker component with callback (use ID as instance key)
 		const trackerContainer = container.createEl('div', { cls: 'yearly-tracker-wrapper' });
 		const tracker = new YearlyTrackerComponent(
+			this.app,
 			trackerContainer,
 			(year: number) => this.onYearChanged(ctx, id, year)
-		);			// Set year bounds and data
-			tracker.setYearBounds(yearBounds);
-			tracker.updateData(noteInfo.yearlyData);
+		);
+		// Set year bounds and data with watched note path
+		tracker.setYearBounds(yearBounds);
+		tracker.updateData(noteInfo.yearlyData, notePath);
 
 			// Set the selected year
 			const initialYear = selectedYear ?? new Date().getFullYear();
@@ -122,7 +123,7 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 				if (updatedFile) {
 					const updatedYearBounds = this.analysisService.getYearBounds(updatedFile as TFile);
 					tracker.setYearBounds(updatedYearBounds);
-					tracker.updateData(updatedNoteInfo.yearlyData);
+					tracker.updateData(updatedNoteInfo.yearlyData, notePath);
 				}
 			}
 		});
