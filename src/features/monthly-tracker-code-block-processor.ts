@@ -102,20 +102,17 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 		// Create container
 		const container = el.createEl('div', { cls: 'note-insight-code-block monthly' });
 
-		// Add title
-		const noteTitle = file.name.replace(/\.md$/, '');
-		container.createEl('h4', { text: noteTitle, cls: 'note-insight-title' });
-
 		// Create monthly tracker component with callback (use ID as instance key)
 		const trackerContainer = container.createEl('div', { cls: 'monthly-tracker-wrapper' });
 		const tracker = new MonthlyTrackerComponent(
+			this.app,
 			trackerContainer,
 			(month: number, year: number) => this.onMonthChanged(ctx, id, month, year)
 		);
 
-		// Set month bounds and data
+		// Set month bounds and data with watched note path
 		tracker.setMonthBounds(monthBounds);
-		tracker.updateData(monthlyData);
+		tracker.updateData(monthlyData, notePath);
 		tracker.setCurrentMonth(initialMonth, initialYear);
 
 		// Register metadata-cache listener for auto-refresh
@@ -136,7 +133,7 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 				const updatedMonthBounds = this.analysisService.getMonthBounds(updatedFile as TFile);
 
 				tracker.setMonthBounds(updatedMonthBounds);
-				tracker.updateData(updatedMonthlyData);
+				tracker.updateData(updatedMonthlyData, notePath);
 			}
 		});
 

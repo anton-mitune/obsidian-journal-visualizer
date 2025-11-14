@@ -1,3 +1,4 @@
+import { App } from 'obsidian';
 import { DailyNoteYearlyData, DailyNoteBacklinkSummary, MonthNavigationState, MonthBounds } from '../types';
 
 /**
@@ -5,14 +6,17 @@ import { DailyNoteYearlyData, DailyNoteBacklinkSummary, MonthNavigationState, Mo
  * Similar to YearlyTrackerComponent but focused on monthly view with month navigation
  */
 export class MonthlyTrackerComponent {
+	private app: App;
 	private container: HTMLElement;
 	private yearlyData: DailyNoteYearlyData;
 	private maxIntensity: number = 5; // Cap intensity at 5 backlinks for consistent coloring
 	private navigationState: MonthNavigationState;
 	private monthBounds: MonthBounds;
 	private onMonthChangeCallback?: (month: number, year: number) => void;
+	private watchedNotePath: string | null = null;
 
-	constructor(container: HTMLElement, onMonthChange?: (month: number, year: number) => void) {
+	constructor(app: App, container: HTMLElement, onMonthChange?: (month: number, year: number) => void) {
+		this.app = app;
 		this.container = container;
 		this.yearlyData = {};
 		this.onMonthChangeCallback = onMonthChange;
@@ -42,9 +46,19 @@ export class MonthlyTrackerComponent {
 	/**
 	 * Update the tracker with new yearly data (we'll filter to selected month)
 	 */
-	updateData(yearlyData: DailyNoteYearlyData): void {
+	updateData(yearlyData: DailyNoteYearlyData, watchedNotePath?: string): void {
 		this.yearlyData = yearlyData;
+		if (watchedNotePath !== undefined) {
+			this.watchedNotePath = watchedNotePath;
+		}
 		this.render();
+	}
+
+	/**
+	 * Set the watched note path
+	 */
+	setWatchedNotePath(path: string): void {
+		this.watchedNotePath = path;
 	}
 
 	/**
@@ -159,6 +173,11 @@ export class MonthlyTrackerComponent {
 		// Create tracker container
 		const trackerContainer = this.container.createEl('div', { cls: 'monthly-tracker-container' });
 
+		// Create watched note title header if available (FEA003 Requirement 5)
+		if (this.watchedNotePath) {
+			this.createNoteHeader(trackerContainer);
+		}
+
 		// Create header with month navigation
 		this.createHeader(trackerContainer);
 
@@ -179,6 +198,32 @@ export class MonthlyTrackerComponent {
 
 		// Create legend
 		this.createLegend(trackerContainer);
+	}
+
+	/**
+	 * Create note header with clickable title
+	 * FEA003 Requirement 5: Click on note title to open the watched note
+	 */
+	private createNoteHeader(container: HTMLElement): void {
+		const noteHeader = container.createEl('div', { cls: 'monthly-tracker-note-header' });
+		
+		// Get note name from path
+		const noteName = this.watchedNotePath?.split('/').pop()?.replace('.md', '') || 'Unknown Note';
+		
+		const noteTitle = noteHeader.createEl('h4', {
+			text: noteName,
+			cls: 'monthly-tracker-note-title'
+		});
+
+		// Make title clickable
+		noteTitle.addEventListener('click', async () => {
+			if (this.watchedNotePath) {
+				const file = this.app.vault.getAbstractFileByPath(this.watchedNotePath);
+				if (file) {
+					await this.app.workspace.getLeaf(false).openFile(file as any);
+				}
+			}
+		});
 	}
 
 	/**
@@ -391,5 +436,34 @@ export class MonthlyTrackerComponent {
 			ariaText = `${summary.linkCount} backlink${summary.linkCount > 1 ? 's' : ''} on ${dateString}`;
 		}
 		element.setAttribute('aria-label', ariaText);
+
+		// FEA003 Requirement 6: Make days with backlinks clickable
+		if (summary.linkCount > 0) {
+			element.addClass('monthly-tracker-square-clickable');
+			element.addEventListener('click', async () => {
+				await this.openDailyNote(date);
+			});
+		}
+	}
+
+	/**
+	 * Open the daily note for a specific date
+	 * FEA003 Requirement 6: Click on day to open corresponding daily note
+	 */
+	private async openDailyNote(date: Date): Promise<void> {
+		// Format date as YYYY-MM-DD for daily note filename
+		const dateString = this.formatDateString(date);
+		
+		// Search for daily note with this date
+		const files = this.app.vault.getMarkdownFiles();
+		for (const file of files) {
+			if (file.basename.includes(dateString) || file.path.includes(dateString)) {
+				await this.app.workspace.getLeaf(false).openFile(file);
+				return;
+			}
+		}
+		
+		// If no file found, show notice
+		// Note: We could create the file here, but that's beyond the scope of FEA003
 	}
 }

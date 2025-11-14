@@ -801,6 +801,37 @@
     margin-top: 4px;
 }
 
+/* FEA003: Clickable note title and day squares */
+.monthly-tracker-note-header {
+    margin-bottom: 8px;
+}
+
+.monthly-tracker-note-title {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--text-normal);
+    margin: 0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: inline-block;
+}
+
+.monthly-tracker-note-title:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-accent);
+}
+
+.monthly-tracker-square-clickable {
+    cursor: pointer;
+}
+
+.monthly-tracker-square-clickable:hover {
+    border-color: var(--text-accent);
+    box-shadow: 0 0 0 2px var(--text-accent-hover);
+}
+
 /* Responsive adjustments for monthly tracker */
 @media (max-width: 768px) {
     .monthly-tracker-squares {

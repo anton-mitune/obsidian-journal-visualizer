@@ -210,8 +210,14 @@ export class NoteInsightsView extends ItemView {
 			// Create monthly tracker container
 			const monthlyTrackerContainer = monthlySection.createEl('div', { cls: 'note-insights-monthly-tracker' });
 			// Always create a new tracker for each note
-			this.monthlyTracker = new MonthlyTrackerComponent(monthlyTrackerContainer, this.onMonthChangeCallback);
-			this.monthlyTracker.updateData(this.currentNoteInfo.yearlyData);
+			this.monthlyTracker = new MonthlyTrackerComponent(this.app, monthlyTrackerContainer, this.onMonthChangeCallback);
+			// Get active file path for click handlers
+			const activeFile = this.app.workspace.getActiveFile();
+			if (activeFile) {
+				this.monthlyTracker.updateData(this.currentNoteInfo.yearlyData, activeFile.path);
+			} else {
+				this.monthlyTracker.updateData(this.currentNoteInfo.yearlyData);
+			}
 			
 			// Set month bounds if available
 			if (this.monthBounds) {
