@@ -2,6 +2,7 @@ import { App, Plugin, MarkdownPostProcessorContext, MarkdownRenderChild, TFile }
 import { BaseCodeBlockProcessor } from './base-code-block-processor';
 import { YearlyTrackerComponent } from '../ui/yearly-tracker-component';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
+import { debounce } from '../utils/debounce';
 import { logger } from '../utils/logger';
 /**
  * Configuration parsed from yearly code block
@@ -110,7 +111,7 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 			tracker.setCurrentYear(initialYear);
 
 		// Register metadata-cache listener for auto-refresh
-		const eventRef = this.app.metadataCache.on('resolved', () => {
+		const eventRef = this.app.metadataCache.on('resolved', debounce(() => {
 			const instance = this.instances.get(id);
 			if (!instance || instance.isUpdatingCodeblock) {
 				return;
@@ -126,7 +127,7 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 					tracker.updateData(updatedNoteInfo.yearlyData, notePath);
 				}
 			}
-		});
+		}, 5000));
 
 		this.plugin.registerEvent(eventRef);
 
@@ -142,14 +143,11 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 			isUpdatingCodeblock: false
 		});
 
+
 		// Register cleanup
 		const renderChild = new MarkdownRenderChild(container);
 		renderChild.onunload = () => {
-			const instance = this.instances.get(id);
-			if (instance) {
-				this.app.workspace.offref(instance.eventRef);
-				this.instances.delete(id);
-			}
+			this.cleanupInstance(id);
 		};
 		ctx.addChild(renderChild);
 

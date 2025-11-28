@@ -1,9 +1,10 @@
-import { App, Plugin, MarkdownPostProcessorContext, TFile, Notice } from 'obsidian';
+import { App, Plugin, MarkdownPostProcessorContext, TFile, Notice, MarkdownRenderChild } from 'obsidian';
 import { BaseCodeBlockProcessor, CodeBlockInstance } from './base-code-block-processor';
 import { BacklinkCounterComponent } from '../ui/backlink-counter-component';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { SettingsService } from '../services/settings-service';
 import { TimePeriod, DisplayMode, WatchMode } from '../types';
+import { debounce } from '../utils/debounce';
 import { logger } from '../utils/logger';
 
 /**
@@ -132,7 +133,7 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 				folderPath: folderPathArray
 			});
 			// Register metadata-cache listener for auto-refresh
-			const eventRef = this.app.metadataCache.on('resolved', () => {
+			const eventRef = this.app.metadataCache.on('resolved', debounce(() => {
 				const instance = this.instances.get(config.id);
 				if (!instance || instance.isUpdatingCodeblock) {
 					return;
@@ -155,7 +156,7 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 						watchMode: WatchMode.FOLDER
 					});
 				}
-			});
+			}, 5000));
 
 			this.plugin.registerEvent(eventRef);
 
@@ -171,6 +172,13 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 				isUpdatingCodeblock: false,
 				notePath: config.notePath // Store watched notes for metadata listener
 			});
+
+			// Register cleanup
+			const renderChild = new MarkdownRenderChild(container);
+			renderChild.onunload = () => {
+				this.cleanupInstance(config.id);
+			};
+			ctx.addChild(renderChild);
 		} catch (error) {
 			logger.error('[CounterCodeBlockProcessor] Error:', error);
 			el.createEl('div', {

@@ -2,6 +2,7 @@ import { App, Plugin, MarkdownPostProcessorContext, MarkdownRenderChild, TFile }
 import { BaseCodeBlockProcessor } from './base-code-block-processor';
 import { MonthlyTrackerComponent } from '../ui/monthly-tracker-component';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
+import { debounce } from '../utils/debounce';
 import { logger } from '../utils/logger';
 
 /**
@@ -116,7 +117,7 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 		tracker.setCurrentMonth(initialMonth, initialYear);
 
 		// Register metadata-cache listener for auto-refresh
-		const eventRef = this.app.metadataCache.on('resolved', () => {
+		const eventRef = this.app.metadataCache.on('resolved', debounce(() => {
 			const instance = this.instances.get(id);
 			if (!instance || instance.isUpdatingCodeblock) {
 				return;
@@ -135,7 +136,7 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 				tracker.setMonthBounds(updatedMonthBounds);
 				tracker.updateData(updatedMonthlyData, notePath);
 			}
-		});
+		}, 5000));
 
 		this.plugin.registerEvent(eventRef);
 
@@ -155,11 +156,7 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 		// Register cleanup
 		const renderChild = new MarkdownRenderChild(container);
 		renderChild.onunload = () => {
-			const instance = this.instances.get(id);
-			if (instance) {
-				this.app.workspace.offref(instance.eventRef);
-				this.instances.delete(id);
-			}
+			this.cleanupInstance(id);
 		};
 		ctx.addChild(renderChild);	} catch (error) {
 			logger.error('[MonthlyTrackerCodeBlockProcessor] Error:', error);
