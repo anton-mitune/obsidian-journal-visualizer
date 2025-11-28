@@ -1,5 +1,6 @@
 import { App } from 'obsidian';
 import { DailyNoteYearlyData, DailyNoteBacklinkSummary, YearNavigationState, YearBounds } from '../types';
+import { DailyNoteClassifier } from '../utils/daily-note-classifier';
 
 /**
  * Component that renders a yearly tracker (git-style grid) showing daily note backlinks
@@ -381,19 +382,11 @@ export class YearlyTrackerComponent {
 	 * FEA002 Requirement 5: Click on day to open corresponding daily note
 	 */
 	private async openDailyNote(date: Date): Promise<void> {
-		// Format date as YYYY-MM-DD for daily note filename
-		const dateString = this.formatDateString(date);
+		const classifier = new DailyNoteClassifier(this.app);
+		const file = classifier.findDailyNote(date);
 		
-		// Search for daily note with this date
-		const files = this.app.vault.getMarkdownFiles();
-		for (const file of files) {
-			if (file.basename.includes(dateString) || file.path.includes(dateString)) {
-				await this.app.workspace.getLeaf(false).openFile(file);
-				return;
-			}
+		if (file) {
+			await this.app.workspace.getLeaf(false).openFile(file);
 		}
-		
-		// If no file found, show notice
-		// Note: We could create the file here, but that's beyond the scope of FEA002
 	}
 }

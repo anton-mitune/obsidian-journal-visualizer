@@ -202,12 +202,32 @@ export class DailyNoteClassifier {
 	}
 
 	/**
-	 * Get monthly daily note backlink data for a specific month/year
+	 * Find the daily note file for a specific date
+	 */
+	findDailyNote(date: Date): TFile | null {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		const targetDateString = `${year}-${month}-${day}`;
+
+		const files = this.app.vault.getMarkdownFiles();
+		for (const file of files) {
+			if (this.isDailyNote(file)) {
+				const fileDateString = this.extractDateFromDailyNote(file);
+				if (fileDateString === targetDateString) {
+					return file;
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Get monthly daily note backlink data for a specific month and year
 	 */
 	getMonthlyDailyNoteBacklinks(backlinks: BacklinkInfo[], month: number, year: number): DailyNoteYearlyData {
 		const monthlyData: DailyNoteYearlyData = {};
-		
-		// Filter to specified month/year daily notes only
+		// Filter to specified month and year daily notes only
 		const monthBacklinks = backlinks.filter(backlinkInfo => 
 			this.isDailyNoteFromMonth(backlinkInfo.file, month, year)
 		);
@@ -217,11 +237,10 @@ export class DailyNoteClassifier {
 			if (dateString) {
 				monthlyData[dateString] = {
 					linkCount: backlinkInfo.linkCount,
-					lines: undefined // Could be extended later for line extraction
+					lines: undefined
 				};
 			}
 		}
-		
 		return monthlyData;
 	}
 
@@ -229,94 +248,80 @@ export class DailyNoteClassifier {
 	 * Calculate month bounds based on available daily notes
 	 */
 	calculateMonthBounds(backlinks: BacklinkInfo[]): MonthBounds {
-		const dailyNoteBacklinks = backlinks.filter(backlinkInfo => {
-			const dailyNotesFolder = this.getDailyNotesFolder();
-			return !dailyNotesFolder || backlinkInfo.file.path.startsWith(dailyNotesFolder);
-		});
+		let minYear = new Date().getFullYear();
+		let maxYear = new Date().getFullYear();
+		let minMonth = 0;
+		let maxMonth = 11;
 
-		if (dailyNoteBacklinks.length === 0) {
-			// No daily notes found, default to current month
-			const now = new Date();
-			return {
-				minMonth: now.getMonth(),
-				minYear: now.getFullYear(),
-				maxMonth: now.getMonth(),
-				maxYear: now.getFullYear()
-			};
-		}
-
-		let minYear = Infinity;
-		let minMonth = 11;
-		let maxYear = -Infinity;
-		let maxMonth = 0;
-
-		for (const backlinkInfo of dailyNoteBacklinks) {
-			const dateMatch = backlinkInfo.file.basename.match(/(\d{4})-(\d{2})-(\d{2})/);
-			if (dateMatch) {
-				const year = parseInt(dateMatch[1]);
-				const month = parseInt(dateMatch[2]) - 1; // 0-indexed
-
-				if (year < minYear || (year === minYear && month < minMonth)) {
-					minYear = year;
-					minMonth = month;
-				}
-				if (year > maxYear || (year === maxYear && month > maxMonth)) {
-					maxYear = year;
-					maxMonth = month;
-				}
-			}
-		}
-
-		// Add buffer for current month if it's beyond the range
+		// Initialize with current date
 		const now = new Date();
-		const currentYear = now.getFullYear();
-		const currentMonth = now.getMonth();
+		minYear = now.getFullYear();
+		maxYear = now.getFullYear();
+		minMonth = now.getMonth();
+		maxMonth = now.getMonth();
 
-		if (currentYear > maxYear || (currentYear === maxYear && currentMonth > maxMonth)) {
-			maxYear = currentYear;
-			maxMonth = currentMonth;
-		}
+		let hasData = false;
 
-		return {
-			minMonth: minMonth === Infinity ? currentMonth : minMonth,
-			minYear: minYear === Infinity ? currentYear : minYear,
-			maxMonth: maxMonth === -Infinity ? currentMonth : maxMonth,
-			maxYear: maxYear === -Infinity ? currentYear : maxYear
-		};
-	}
-
-	/**
-	 * Get yearly daily note backlink data for the current year (deprecated - use getYearlyDailyNoteBacklinks)
-	 */
-	getYearlyDailyNoteBacklinksLegacy(backlinks: BacklinkInfo[]): DailyNoteYearlyData {
-		return this.getYearlyDailyNoteBacklinks(backlinks, new Date().getFullYear());
-	}
-
-	/**
-	 * Get daily note backlinks within a specific date range (FEA008: Time-series visualization)
-	 * Returns data for all dates in the range, with 0 counts for dates with no backlinks
-	 */
-	getDailyBacklinksInRange(backlinks: BacklinkInfo[], startDate: Date, endDate: Date): DailyNoteYearlyData {
-		const rangeData: DailyNoteYearlyData = {};
-		
-		// Initialize all dates in range with 0
-		const currentDate = new Date(startDate);
-		while (currentDate <= endDate) {
-			const dateString = this.formatDateString(currentDate);
-			rangeData[dateString] = {
-				linkCount: 0,
-				lines: undefined
-			};
-			currentDate.setDate(currentDate.getDate() + 1);
-		}
-		
-		// Fill in actual backlink counts
 		for (const backlinkInfo of backlinks) {
 			if (this.isDailyNote(backlinkInfo.file)) {
 				const dateString = this.extractDateFromDailyNote(backlinkInfo.file);
 				if (dateString) {
-					const fileDate = this.parseDateString(dateString);
-					if (fileDate && fileDate >= startDate && fileDate <= endDate) {
+					const date = new Date(dateString);
+					const year = date.getFullYear();
+					const month = date.getMonth();
+
+					if (!hasData) {
+						minYear = year;
+						maxYear = year;
+						minMonth = month;
+						maxMonth = month;
+						hasData = true;
+					} else {
+						if (year < minYear || (year === minYear && month < minMonth)) {
+							minYear = year;
+							minMonth = month;
+						}
+						if (year > maxYear || (year === maxYear && month > maxMonth)) {
+							maxYear = year;
+							maxMonth = month;
+						}
+					}
+				}
+			}
+		}
+		
+		// If no data, default to current month +/- 1 year range or something reasonable
+		if (!hasData) {
+			return {
+				minYear: now.getFullYear() - 1,
+				minMonth: 0,
+				maxYear: now.getFullYear() + 1,
+				maxMonth: 11
+			};
+		}
+
+		return { minMonth, minYear, maxMonth, maxYear };
+	}
+
+	/**
+	 * Get daily backlinks within a specific date range
+	 */
+	getDailyBacklinksInRange(backlinks: BacklinkInfo[], startDate: Date, endDate: Date): DailyNoteYearlyData {
+		const rangeData: DailyNoteYearlyData = {};
+		
+		// Normalize dates to start of day for comparison
+		const start = new Date(startDate);
+		start.setHours(0, 0, 0, 0);
+		const end = new Date(endDate);
+		end.setHours(23, 59, 59, 999);
+
+		for (const backlinkInfo of backlinks) {
+			if (this.isDailyNote(backlinkInfo.file)) {
+				const dateString = this.extractDateFromDailyNote(backlinkInfo.file);
+				if (dateString) {
+					const date = new Date(dateString);
+					// Check if date is within range
+					if (date >= start && date <= end) {
 						rangeData[dateString] = {
 							linkCount: backlinkInfo.linkCount,
 							lines: undefined
@@ -325,62 +330,6 @@ export class DailyNoteClassifier {
 				}
 			}
 		}
-		
 		return rangeData;
-	}
-
-	/**
-	 * Format a Date object to YYYY-MM-DD string
-	 */
-	private formatDateString(date: Date): string {
-		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, '0');
-		const day = String(date.getDate()).padStart(2, '0');
-		return `${year}-${month}-${day}`;
-	}
-
-	/**
-	 * Count backlinks from daily notes within a specific date range
-	 * FEA005: Used by counter component
-	 */
-	countBacklinksInRange(targetNotePath: string, startDate: Date, endDate: Date): number {
-		// Get all backlinks to the target note
-		const resolvedLinks = this.app.metadataCache.resolvedLinks;
-		let totalCount = 0;
-
-		// Iterate through all files to find backlinks
-		for (const [sourcePath, links] of Object.entries(resolvedLinks)) {
-			// Check if this file links to our target
-			if (links[targetNotePath]) {
-				const sourceFile = this.app.vault.getAbstractFileByPath(sourcePath);
-				
-				// Only count if it's a daily note
-				if (sourceFile instanceof TFile && this.isDailyNote(sourceFile as TFile)) {
-					const dateString = this.extractDateFromDailyNote(sourceFile as TFile);
-					if (dateString) {
-						const fileDate = this.parseDateString(dateString);
-						
-						// Check if the file date is within our range
-						if (fileDate && fileDate >= startDate && fileDate <= endDate) {
-							totalCount += links[targetNotePath];
-						}
-					}
-				}
-			}
-		}
-
-		return totalCount;
-	}
-
-	/**
-	 * Parse a date string in YYYY-MM-DD format to a Date object (at midnight)
-	 */
-	private parseDateString(dateString: string): Date | null {
-		const match = dateString.match(/(\d{4})-(\d{2})-(\d{2})/);
-		if (!match) {
-			return null;
-		}
-		const [, year, month, day] = match;
-		return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0);
 	}
 }
