@@ -1,4 +1,4 @@
-import { App, Editor, Menu, Plugin } from 'obsidian';
+import { App, Editor, Menu, Plugin, View, MarkdownView, MarkdownFileInfo } from 'obsidian';
 import { NoteSelector } from '../ui/note-selector';
 
 /**
@@ -20,9 +20,9 @@ export class NoteInsightContextMenuManager {
 	register(): void {
 		// Register editor menu event for context menu integration
 		this.plugin.registerEvent(
-			this.app.workspace.on('editor-menu', (menu: Menu, editor: Editor) => {
+			this.app.workspace.on('editor-menu', ((menu: Menu, editor: Editor, info: MarkdownView | MarkdownFileInfo) => {
 				this.addMenuItems(menu, editor);
-			})
+			}) as any)
 		);
 	}
 
@@ -79,6 +79,7 @@ export class NoteInsightContextMenuManager {
 			const id = this.generateCodeblockId();
 			const codeBlock = `\`\`\`note-insight-yearly\nid: ${id}\nnotePath: ${file.path}\n\`\`\`\n`;
 			editor.replaceSelection(codeBlock);
+			this.resizeCanvasNodeIfNeeded(800, 300);
 		});
 		modal.open();
 	}
@@ -91,6 +92,7 @@ export class NoteInsightContextMenuManager {
 			const id = this.generateCodeblockId();
 			const codeBlock = `\`\`\`note-insight-monthly\nid: ${id}\nnotePath: ${file.path}\n\`\`\`\n`;
 			editor.replaceSelection(codeBlock);
+			this.resizeCanvasNodeIfNeeded(420, 420);
 		});
 		modal.open();
 	}
@@ -102,5 +104,45 @@ export class NoteInsightContextMenuManager {
 		const id = this.generateCodeblockId();
 		const codeBlock = `\`\`\`note-insight-counter\nid: ${id}\n\`\`\`\n`;
 		editor.replaceSelection(codeBlock);
+		this.resizeCanvasNodeIfNeeded(420, 410);
+	}
+
+	/**
+	 * Resize canvas node if we are in a canvas context
+	 */
+	private resizeCanvasNodeIfNeeded(width: number, height: number): void {
+		// Find the active canvas view
+		const activeLeaf = this.app.workspace.getMostRecentLeaf();
+		if (!activeLeaf) return;
+		
+		const view = activeLeaf.view;
+		if (view.getViewType() === 'canvas') {
+			const canvas = (view as any).canvas;
+			if (canvas && canvas.selection && canvas.selection.size === 1) {
+				const node = canvas.selection.values().next().value;
+				if (node) {
+					// Try different resizing methods based on common canvas API patterns
+					if (typeof node.moveAndResize === 'function') {
+						node.moveAndResize({
+							x: node.x,
+							y: node.y,
+							width: width,
+							height: height
+						});
+					} else if (typeof node.setSize === 'function') {
+						node.setSize({ width, height });
+					} else if (typeof node.resize === 'function') {
+						node.resize({ width, height });
+					} else {
+						// Fallback: set properties and request save
+						node.width = width;
+						node.height = height;
+						if (typeof canvas.requestSave === 'function') {
+							canvas.requestSave();
+						}
+					}
+				}
+			}
+		}
 	}
 }
