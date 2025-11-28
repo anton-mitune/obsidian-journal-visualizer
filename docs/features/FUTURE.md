@@ -15,3 +15,8 @@
 - Current implementation creates one event listener per code block instance. For vaults with many embedded note insights, consider implementing a centralized event manager that dispatches to relevant components
 - Implement debouncing for rapid successive metadata changes to avoid redundant re-renders
 - Add caching layer to BacklinkAnalysisService to avoid re-computing unchanged data
+
+
+Should yearly/monthly also use empty state?
+- Current: Context menu → note selector → insert with state
+- Could be: Insert empty → click to select note → pick period

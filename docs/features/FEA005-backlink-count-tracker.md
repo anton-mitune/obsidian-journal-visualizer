@@ -39,7 +39,9 @@
 
 ### Assumptions and rules
 - The default selected period is "past 30 days"
-- folder watching is recursive by default (includes subfolders)
+- Folder watching is recursive by default (includes subfolders)
+- Multiple notes and folder watching capabilities are defined in [FEA009](FEA009-multiple-notes-watching.md)
+- Default watch mode is Folder mode in empty state (per FEA009)
 
 ## Design
 
@@ -79,6 +81,9 @@ export enum TimePeriod {
 
 export interface CounterState {
   selectedPeriod: TimePeriod;
+  watchMode: 'note' | 'folder';
+  notePaths?: string[];  // For multiple notes mode
+  folderPath?: string;   // For folder mode
 }
 
 export interface DateRange {
@@ -95,15 +100,26 @@ export interface DateRange {
 constructor(
   container: HTMLElement,
   classifier: DailyNoteClassifier,
-  onPeriodChangeCallback?: (period: TimePeriod) => void
+  onPeriodChangeCallback?: (period: TimePeriod) => void,
+  onModeChangeCallback?: (mode: 'note' | 'folder') => void,
+  onNoteAddedCallback?: (notePath: string) => void,
+  onNoteRemovedCallback?: (notePath: string) => void,
+  onFolderAddedCallback?: (folderPath: string) => void,
+  onFolderRemovedCallback?: () => void
 )
 ```
 
 **Key Methods**:
 - `updateData(backlinks: BacklinkInfo[])`: Receives backlink data and triggers recalculation
+- `updateMultipleNotesData(results: Map<string, BacklinkInfo[]>)`: Receives data for multiple notes
 - `setSelectedPeriod(period: TimePeriod)`: Changes the time period and re-renders
+- `setWatchMode(mode: 'note' | 'folder')`: Changes watch mode (only when empty)
+- `addNote(notePath: string)`: Adds a note to watch list (note mode only)
+- `removeNote(notePath: string)`: Removes a note from watch list
+- `setFolder(folderPath: string)`: Sets folder to watch (folder mode only)
+- `clearFolder()`: Removes watched folder
 - `clear()`: Resets component state
-- `render()`: Builds UI with dropdown and count display
+- `render()`: Builds UI with mode toggle, dropdown, count display, and add/remove controls
 
 **Data Flow**:
 1. Receives `BacklinkInfo[]` array
@@ -129,17 +145,35 @@ Converts `TimePeriod` enum to concrete `DateRange`:
 #### 4. Code Block Integration
 **Code block syntax**:
 
+**Single note (legacy/simple syntax):**
 ```note-insight-counter
 notePath: Projects/MyNote.md
 selectedPeriod: past-30-days
 ```
 
-**Processor**: `NoteInsightCodeBlockProcessor.processCounterBlock()`
-- Parses configuration from code block
-- Gets backlinks via `BacklinkAnalysisService.getBacklinksForFile()`
-- Creates component instance with callback
+**Multiple notes (note watching mode):**
+```note-insight-counter
+watchMode: note
+notePath: Projects/Alpha.md
+notePath: Projects/Beta.md
+selectedPeriod: past-30-days
+```
+
+**Folder watching mode:**
+```note-insight-counter
+watchMode: folder
+folderPath: Projects
+selectedPeriod: past-30-days
+```
+
+**Processor**: `CounterCodeBlockProcessor.processCounterBlock()`
+- Parses `watchMode`, `notePath` (multiple lines), `folderPath`, and `selectedPeriod` from code block
+- Defaults to `watchMode: note` with single note if not specified (legacy compatibility)
+- Gets backlinks via `BacklinkAnalysisService.getBacklinksForFile()` for each watched note
+- Creates component instance with callbacks for state changes
 - Registers metadata cache listener for auto-refresh
-- Persists period selection changes back to code block
+- Persists all state changes back to code block
+- Uses `isUpdatingCodeblock` flag to prevent infinite refresh loops
 
 #### 5. Note Insights View Integration
 **Location**: `src/ui/note-insights-view.ts`
@@ -153,10 +187,10 @@ Counter section added after title, before monthly tracker:
 #### 6. Context Menu Integration
 **Location**: `src/features/note-insight-context-menu-manager.ts`
 
-Adds "Add Counter from Vault" menu item:
+Adds "Add Counter" menu item:
 - Icon: `hash`
-- Presents note selector modal
-- Inserts `note-insight-counter` code block at cursor
+- Inserts empty `note-insight-counter` code block at cursor in default Folder mode
+- User interacts with mode toggle and add buttons to configure watching behavior
 
 #### 7. UI Layout
 
@@ -203,8 +237,11 @@ Adds "Add Counter from Vault" menu item:
 1. **Note Insights View** (right sidebar): Automatically shows for active note
 2. **Markdown code blocks**: Embed via `` ```note-insight-counter `` syntax
 3. **Canvas text nodes**: Same code block syntax works in canvas
-4. **Editor context menu**: Right-click → "Add Counter from Vault"
-5. **Auto-refresh**: All instances update when watched note's backlinks change
+4. **Auto-refresh**: All instances update when watched note's backlinks change
+
+For details on how to embed this component in markdown notes, canvas nodes, or via context menu, see [FEA004: Embed Note Insight Component](FEA004-embed-note-insight-component.md).
+
+This component supports multiple notes and folder watching as defined in [FEA009: Multiple Notes Watching](FEA009-multiple-notes-watching.md).
 
 ## Components and Interfaces
 - **BacklinkCounterComponent** (`src/ui/backlink-counter-component.ts`): Main component class
@@ -213,46 +250,13 @@ Adds "Add Counter from Vault" menu item:
 - **CounterState** (`src/types.ts`): Interface for component state (includes notePaths and folderPath)
 - **DateRange** (`src/types.ts`): Interface representing start/end dates
 - **NoteCounterResult** (`src/types.ts`): Result object for individual note counts in multiple notes mode
-- **NoteInsightCodeBlockProcessor** (`src/features/note-insight-code-block-processor.ts`): Code block rendering
+- **CounterCodeBlockProcessor** (`src/features/counter-code-block-processor.ts`): Code block rendering
 - **NoteInsightContextMenuManager** (`src/features/note-insight-context-menu-manager.ts`): Context menu integration
 
-## Where This Component Appears
+## Integration
 
-The Backlink Counter component can be displayed in multiple contexts:
+For details on how to embed this component in markdown notes, canvas nodes, or via context menu, see [FEA004: Embed Note Insight Component](FEA004-embed-note-insight-component.md).
 
-### Note Insights Panel (FEA001)
-- Automatically appears in the right sidebar "Note insights" view
-- Shows data for the currently active note
-- Updates automatically when switching notes
-- No state persistence (always defaults to "past 30 days")
-
-### Code Blocks in Markdown Notes (FEA004)
-- Can be embedded using `note-insight-counter` code block type
-- Supports watching single note, multiple notes, or entire folders (see [FEA009](FEA009-multiple-notes-watching.md))
-- State (selected period) persists across sessions
-- Auto-updates when watched note's backlinks change
-
-**Code block syntax examples:**
-```note-insight-counter
-id: a3x9k2
-notePath: path/to/note.md
-selectedPeriod: past-30-days
-```
-
-**Note:** The `id:` property is automatically generated when you first create the code block and is used to uniquely identify it for updates. You don't need to manually add it.
-
-See [FEA009](FEA009-multiple-notes-watching.md) for multiple notes (`notePaths:`) and folder watching (`folderPath:`) syntax.
-
-### Canvas Text Nodes (FEA004)
-- Same functionality as markdown code blocks
-- Embeddable in canvas text nodes using identical syntax
-- State persists in canvas JSON
-
-### Editor Context Menu (FEA004)
-- Can be inserted via "Add Counter from Vault" context menu option
-- Opens note selector modal to choose note to watch
-- Inserts code block at cursor position
-
-For complete details on embedding and context menu usage, see [FEA004: Embed Note Insight Component](FEA004-embed-note-insight-component.md).
+This component supports multiple notes and folder watching as defined in [FEA009: Multiple Notes Watching](FEA009-multiple-notes-watching.md).
 
 For an overview of all components and their capabilities, see the [Component Capabilities Matrix](component-capabilities-matrix.md).

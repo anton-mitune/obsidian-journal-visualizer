@@ -4,11 +4,26 @@ This document provides a quick reference for all note insight components and the
 
 ## Available Components
 
-| Component | Feature Doc | Note Insights Panel | Code Blocks (Markdown) | Canvas Text Nodes | Context Menu | Code Block Type | Display Modes | Multiple Notes Support |
-|-----------|-------------|---------------------|------------------------|-------------------|--------------|-----------------|---------------------|------------------------|
-| Yearly Tracker | [FEA002](FEA002-yearly-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-yearly` | Default only | ❌  |
-| Monthly Tracker | [FEA003](FEA003-monthly-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-monthly` | Default only | ❌ |
-| Backlink Counter | [FEA005](FEA005-backlink-count-tracker.md) | ✅ | ✅ | ✅ | ✅ | `note-insight-counter` | Default, Pie ([FEA006](FEA006-pie-display-mode.md)), Top-N ([FEA007](FEA007-top-n-display-mode.md)), Time-Series ([FEA008](FEA008-time-series-display-mode.md)) | ✅ ([FEA009](FEA009-multiple-notes-watching.md)) |
+| Component | Feature Doc | Note Insights Panel | Code Blocks (Markdown) | Canvas Text Nodes | Context Menu Insertion | Code Block Type | Display Modes | Multiple Notes Support |
+|-----------|-------------|---------------------|------------------------|-------------------|------------------------|-----------------|---------------------|------------------------|
+| Yearly Tracker | [FEA002](FEA002-yearly-tracker.md) | ✅ | ✅ | ✅ | Note Selector | `note-insight-yearly` | Default only | ❌  |
+| Monthly Tracker | [FEA003](FEA003-monthly-tracker.md) | ✅ | ✅ | ✅ | Note Selector | `note-insight-monthly` | Default only | ❌ |
+| Backlink Counter | [FEA005](FEA005-backlink-count-tracker.md) | ✅ | ✅ | ✅ | Empty State | `note-insight-counter` | Default, Pie ([FEA006](FEA006-pie-display-mode.md)), Top-N ([FEA007](FEA007-top-n-display-mode.md)), Time-Series ([FEA008](FEA008-time-series-display-mode.md)) | ✅ ([FEA009](FEA009-multiple-notes-watching.md)) |
+
+## Context Menu Insertion Patterns
+
+Components use two different insertion patterns when added via editor context menu:
+
+### Note Selector Pattern
+These components open a note selector modal and insert a pre-configured code block:
+- **Yearly Tracker** - Menu: "Add Yearly Tracker from Vault"
+- **Monthly Tracker** - Menu: "Add Monthly Tracker from Vault"
+
+### Empty State Pattern
+These components insert an empty code block and let users configure via in-component UI (supports [FEA009](FEA009-multiple-notes-watching.md)):
+- **Backlink Counter** - Menu: "Add Counter"
+
+For complete details on insertion behavior, see [FEA004: Embed Note Insight Component](FEA004-embed-note-insight-component.md).
 
 
 ## Where Components Appear
@@ -17,13 +32,13 @@ This document provides a quick reference for all note insight components and the
 All registered note insight components automatically appear in the Note Insights View panel in the right sidebar. The panel shows components for the currently active note.
 
 ### Code Blocks in Markdown Notes (FEA004)
-All components can be embedded in markdown notes using code block syntax. Each component has its own code block type.
+All components can be embedded in markdown notes using code block syntax. Each component has its own code block type. See [FEA004](FEA004-embed-note-insight-component.md) for details.
 
 ### Canvas Text Nodes (FEA004)
-All components work identically in canvas text nodes as they do in markdown notes.
+All components work identically in canvas text nodes as they do in markdown notes. See [FEA004](FEA004-embed-note-insight-component.md) for details.
 
 ### Editor Context Menu (FEA004)
-All components can be inserted via editor context menus. Each option opens a note selector modal to choose the note to watch.
+All components can be inserted via editor context menus, but use different insertion patterns (see table above). See [FEA004](FEA004-embed-note-insight-component.md) for complete details.
 
 ## Component Features
 
@@ -38,8 +53,11 @@ Components that support multiple notes watching can display data in different vi
 Display modes are only available in code block embeds (markdown and canvas), not in the Note Insights Panel.
 
 ### Multiple Notes Watching (FEA009)
-Components can be configured to watch multiple notes simultaneously. See [FEA009](FEA009-multiple-notes-watching.md) for details on:
-- Adding/removing notes via UI controls
+Components that support this feature can be configured to watch multiple notes or entire folders simultaneously. See [FEA009](FEA009-multiple-notes-watching.md) for details on:
+- Mode toggle (Folder/Note)
+- Adding/removing notes and folders via UI controls
 - Watching up to 50 notes per component
 - Managing watched note lists
+
+Components with this capability use the Empty State insertion pattern (see table above).
 

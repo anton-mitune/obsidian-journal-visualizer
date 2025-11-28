@@ -19,14 +19,33 @@ See the [Component Capabilities Matrix](component-capabilities-matrix.md) for th
 ### Requirement 1 — Add note insight component to editors via context menu
 **User Story:** As a knowledge worker, I want to add note insight components from existing notes to my current editor context (markdown notes or canvas text nodes), so that I can visualize metadata and patterns directly where I'm working.
 
-**Example:**
+**Example (Default Pattern - Note Selector):**
 - GIVEN that I have a note with 2 backlinks from daily notes in 2025 AND I have a markdown editor or canvas text node editor active
 - WHEN I right-click in the editor to open the context menu
-- THEN I see options for adding note insight components (e.g., "Add Yearly Tracker from Vault", "Add Monthly Tracker from Vault", "Add Backlink Counter from Vault")
-- WHEN I select one of these options
+- THEN I see options for adding note insight components (e.g., "Add Yearly Tracker from Vault", "Add Monthly Tracker from Vault", "Add Counter")
+- WHEN I select "Add Yearly Tracker from Vault" or "Add Monthly Tracker from Vault"
 - THEN I am prompted to select a source note via a note selector modal
 - WHEN I select the note
-- THEN the corresponding note insight code block is inserted at the cursor position, it is rendered into a note insight component displaying the insight data for that note exactly as it appears in the note insights panel
+- THEN the corresponding note insight code block is inserted at the cursor position with the selected note pre-configured
+
+**Example (Empty State Pattern - FEA009 Components):**
+- GIVEN that I have a markdown editor or canvas text node editor active
+- WHEN I right-click in the editor to open the context menu
+- AND I select "Add Counter"
+- THEN an counter component is immediatly inserted at the cursor position in default Folder mode
+- AND the component displays an empty state with mode toggle and add buttons
+- AND I can interact with the component UI to add folders or notes to watch
+
+**Component Insertion Patterns:**
+
+**Default Pattern (Note Selector):**
+Most components open a note selector modal and insert a pre-configured code block:
+- Yearly Tracker (FEA002)
+- Monthly Tracker (FEA003)
+
+**Empty State Pattern:**
+Components that support multiple notes/folder watching (FEA009) insert an empty code block and let users configure via in-component UI:
+- Counter (FEA005)
 
 **Note:** The specific components available depend on what's registered. See individual component feature documents for details on each component's behavior.
 
@@ -74,6 +93,9 @@ See the [Component Capabilities Matrix](component-capabilities-matrix.md) for th
 
 **Note:** The specific state properties depend on the component type. See individual component features for details.
 
+### Requirement 4 - Canvas text node automatic sizing on module insertion
+**User Story:** As a knowledge worker, I want text node in obsidian canvas to automatically resize when I add a note insight component code block, so that the entire component is visible without manual resizing.
+
 ## Codeblock Format Specification
 
 All note insight components follow a consistent code block format pattern:
@@ -95,6 +117,13 @@ Each component may have additional properties for persisting user configuration 
 **Implementation Approach: Code Block Rendering with Metadata-Driven Refresh and Persistent State**
 
 The implementation provides a generic infrastructure for embedding any note insight component via custom markdown code blocks (e.g., ```note-insight-yearly, ```note-insight-monthly, ```note-insight-counter). Each component listens to metadata cache changes and refreshes when its watched note's backlinks are modified. Component-specific state is persisted directly to the code block content.
+
+### Reference sizes of canvas text nodes by component type:
+| Component Type              | Recommended Canvas Text Node Size      |
+|-----------------------------|---------------------------------------|
+| Yearly Tracker              | Width: 780px, Height: 290px           |
+| Monthly Tracker             | Width: 420px, Height: 400px           |
+| Backlink Counter  (default) | Width: 420px, Height: 400px           |
 
 ### Implementation Architecture
 
@@ -158,13 +187,17 @@ notePath: path/to/note.md
 Adds component insertion options to editor context menus that:
 
 - Listen for `editor-menu` events to detect editor context menu openings
-- Add menu items for each registered component type (e.g., "Add Yearly Tracker from Vault", "Add Monthly Tracker from Vault", "Add Backlink Counter from Vault")
-- Present note selector modal when selected
-- Insert appropriate code block at cursor position with initial configuration
+- Add menu items for each registered component type
+- **Default Pattern**: Present note selector modal when selected, then insert code block with selected note pre-configured
+  - Examples: "Add Yearly Tracker from Vault", "Add Monthly Tracker from Vault"
+- **Empty State Pattern**: Insert empty code block without modal, user configures via component UI
+  - Examples: "Add Counter"
 - Work in both markdown editors and canvas text node editors
 
 **Component Registration:**
-Each component type is registered with the context menu manager, which generates the appropriate menu item and code block template. See individual component features for specific menu item labels and default configurations.
+Each component type is registered with the context menu manager, which generates the appropriate menu item and code block template. The insertion pattern (note selector vs. empty state) is determined by whether the component supports FEA009 (multiple notes watching).
+
+See individual component features for specific menu item labels and default configurations.
 
 #### 4. Component Integration
 Reuses existing note insight components without modification:
