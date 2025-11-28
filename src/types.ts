@@ -154,10 +154,20 @@ export enum DisplayMode {
 	TIME_SERIES = 'time-series'
 }
 
+// FEA009: Watch mode types for multiple notes watching
+export enum WatchMode {
+	NOTE = 'note',
+	FOLDER = 'folder'
+}
+
 export interface CounterState {
 	selectedPeriod: TimePeriod;
 	// Support for watching multiple notes (FEA009)
 	notePath?: string[];
+	// FEA009: Watch mode (note or folder)
+	watchMode?: WatchMode;
+	// FEA009: Folder path for folder watching (array for future multi-folder support)
+	folderPath?: string[];
 	// FEA007: Display mode support
 	displayAs?: DisplayMode;
 }

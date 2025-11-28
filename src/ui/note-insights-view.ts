@@ -172,6 +172,11 @@ export class NoteInsightsView extends ItemView {
 		
 		// Only create counter if we have analysisService and settingsService
 		if (this.analysisService && this.settingsService) {
+			// Cleanup previous component if exists
+			if (this.backlinkCounter) {
+				this.backlinkCounter.cleanup();
+			}
+
 			// Create counter container
 			const counterContainer = counterSection.createEl('div', { cls: 'note-insights-backlink-counter' });
 			// Create counter component (no callbacks needed for view panel - it doesn't persist or allow editing)
@@ -284,6 +289,9 @@ export class NoteInsightsView extends ItemView {
 
 	async onClose(): Promise<void> {
 		// Cleanup when view is closed
+		if (this.backlinkCounter) {
+			this.backlinkCounter.cleanup();
+		}
 		this.currentNoteInfo = null;
 		this.yearlyTracker = null;
 		this.monthlyTracker = null;

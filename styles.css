@@ -855,6 +855,69 @@
     flex-direction: column;
     gap: 16px;
     width: 100%;
+    /* position: relative; Removed for FEA009 layout fix */
+}
+
+/* FEA009: Watch Mode Toggle */
+.watch-mode-toggle-container {
+    /* position: absolute; Removed for FEA009 layout fix */
+    /* top: 0; */
+    /* right: 0; */
+    /* z-index: 10; */
+    display: flex;
+    align-items: center;
+}
+
+.watch-mode-toggle {
+    display: inline-flex;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+}
+
+.watch-mode-toggle.enabled {
+    border-color: var(--interactive-accent);
+}
+
+.watch-mode-toggle.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.watch-mode-option {
+    padding: 4px 12px;
+    background: var(--background-primary);
+    border: none;
+    border-right: 1px solid var(--background-modifier-border);
+    color: var(--text-muted);
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.watch-mode-option:last-child {
+    border-right: none;
+}
+
+.watch-mode-toggle.enabled .watch-mode-option:hover:not(.active) {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.watch-mode-option.active {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    font-weight: 500;
+}
+
+.watch-mode-toggle.disabled .watch-mode-option {
+    cursor: not-allowed;
+}
+
+.watch-mode-toggle.disabled .watch-mode-option.active {
+    background: var(--background-modifier-border);
+    color: var(--text-muted);
 }
 
 /* Controls container */
@@ -1431,6 +1494,24 @@
     .backlink-counter-mode-toggle {
         order: -1;
         width: 100%;
+        justify-content: center;
+    }
+
+    /* FEA009: Responsive Watch Mode Toggle */
+    .watch-mode-toggle-container {
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 4px;
+    }
+    
+    .watch-mode-toggle {
+        width: 100%;
+        display: flex;
+    }
+    
+    .watch-mode-option {
+        flex: 1;
+        text-align: center;
         justify-content: center;
     }
 }

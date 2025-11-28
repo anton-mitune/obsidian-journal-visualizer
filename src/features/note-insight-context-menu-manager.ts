@@ -53,13 +53,13 @@ export class NoteInsightContextMenuManager {
 				});
 		});
 
-		// Add "Add Counter from Vault" option
+		// Add "Add Counter" option
 		menu.addItem((item) => {
 			item
-				.setTitle('Add Counter from Vault')
+				.setTitle('Add Counter')
 				.setIcon('hash')
 				.onClick(() => {
-					this.showNoteSelectorForCounter(editor);
+					this.insertCounterComponent(editor);
 				});
 		});
 	}
@@ -96,14 +96,11 @@ export class NoteInsightContextMenuManager {
 	}
 
 	/**
-	 * Show note selector modal for counter
+	 * Insert empty counter component
 	 */
-	private showNoteSelectorForCounter(editor: Editor): void {
-		const modal = new NoteSelector(this.app, (file) => {
-			const id = this.generateCodeblockId();
-			const codeBlock = `\`\`\`note-insight-counter\nid: ${id}\nnotePath: ${file.path}\n\`\`\`\n`;
-			editor.replaceSelection(codeBlock);
-		});
-		modal.open();
+	private insertCounterComponent(editor: Editor): void {
+		const id = this.generateCodeblockId();
+		const codeBlock = `\`\`\`note-insight-counter\nid: ${id}\n\`\`\`\n`;
+		editor.replaceSelection(codeBlock);
 	}
 }

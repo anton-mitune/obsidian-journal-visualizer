@@ -48,6 +48,26 @@ export abstract class BaseCodeBlockProcessor {
 	): Promise<void>;
 
 	/**
+	 * Clean up an existing instance if it exists
+	 */
+	protected cleanupInstance(id: string): void {
+		const instance = this.instances.get(id);
+		if (instance) {
+			// Call cleanup on component if it exists
+			if (instance.component && typeof instance.component.cleanup === 'function') {
+				instance.component.cleanup();
+			}
+			
+			// Remove event reference if it exists (though usually handled by component)
+			if (instance.eventRef) {
+				this.app.metadataCache.offref(instance.eventRef);
+			}
+			
+			this.instances.delete(id);
+		}
+	}
+
+	/**
 	 * Get the active canvas file (if in canvas context)
 	 */
 	protected getActiveCanvasFile(): TFile | null {
@@ -364,6 +384,10 @@ export abstract class BaseCodeBlockProcessor {
 	 * Clean up instances when the plugin unloads
 	 */
 	unload(): void {
+		// Clean up all instances
+		for (const id of this.instances.keys()) {
+			this.cleanupInstance(id);
+		}
 		this.instances.clear();
 	}
 }

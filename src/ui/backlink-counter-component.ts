@@ -1,10 +1,12 @@
 import { App, TFile, setIcon } from 'obsidian';
-import { TimePeriod, CounterState, BacklinkInfo, NoteCounterResult, DisplayMode } from '../types';
+import { TimePeriod, CounterState, BacklinkInfo, NoteCounterResult, DisplayMode, WatchMode } from '../types';
 import { DateRangeCalculator } from '../utils/date-range-calculator';
 import { DailyNoteClassifier } from '../utils/daily-note-classifier';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { SettingsService } from '../services/settings-service';
+import { FolderResolver } from '../utils/folder-resolver';
 import { NoteSelector } from './note-selector';
+import { FolderSelector } from './folder-selector';
 import { TopNRenderer } from './top-n-renderer';
 import { PieRenderer } from './pie-renderer';
 import { TimeSeriesRenderer, buildTimeSeriesData } from './time-series-renderer';
@@ -25,6 +27,7 @@ export class BacklinkCounterComponent {
 	private classifier: DailyNoteClassifier;
 	private analysisService: BacklinkAnalysisService;
 	private settingsService: SettingsService;
+	private folderResolver: FolderResolver;
 	private state: CounterState;
 	private counterResults: NoteCounterResult[] = [];
 	private topNRenderer: TopNRenderer;
@@ -34,6 +37,10 @@ export class BacklinkCounterComponent {
 	private onNoteAddedCallback?: (notePath: string) => void;
 	private onNoteRemovedCallback?: (notePath: string) => void;
 	private onDisplayModeChangeCallback?: (mode: DisplayMode) => void;
+	// FEA009: Folder watching callbacks
+	private onModeChangeCallback?: (mode: WatchMode) => void;
+	private onFolderAddedCallback?: (folderPath: string) => void;
+	private onFolderRemovedCallback?: () => void;
 	private unsubscribeSettings?: () => void;
 
 	constructor(
@@ -45,21 +52,31 @@ export class BacklinkCounterComponent {
 		onPeriodChangeCallback?: (period: TimePeriod) => void,
 		onNoteAddedCallback?: (notePath: string) => void,
 		onNoteRemovedCallback?: (notePath: string) => void,
-		onDisplayModeChangeCallback?: (mode: DisplayMode) => void
+		onDisplayModeChangeCallback?: (mode: DisplayMode) => void,
+		// FEA009: Folder watching callbacks
+		onModeChangeCallback?: (mode: WatchMode) => void,
+		onFolderAddedCallback?: (folderPath: string) => void,
+		onFolderRemovedCallback?: () => void
 	) {
 		this.container = container;
 		this.app = app;
 		this.classifier = classifier;
 		this.analysisService = analysisService;
 		this.settingsService = settingsService;
+		this.folderResolver = new FolderResolver(app);
 		this.onPeriodChangeCallback = onPeriodChangeCallback;
 		this.onNoteAddedCallback = onNoteAddedCallback;
 		this.onNoteRemovedCallback = onNoteRemovedCallback;
 		this.onDisplayModeChangeCallback = onDisplayModeChangeCallback;
-		// Default to past 30 days and default display mode as per requirements
+		// FEA009: Store folder watching callbacks
+		this.onModeChangeCallback = onModeChangeCallback;
+		this.onFolderAddedCallback = onFolderAddedCallback;
+		this.onFolderRemovedCallback = onFolderRemovedCallback;
+		// Default to past 30 days, default display mode, and folder watch mode (FEA009)
 		this.state = { 
 			selectedPeriod: TimePeriod.PAST_30_DAYS,
-			displayAs: DisplayMode.DEFAULT 
+			displayAs: DisplayMode.DEFAULT,
+			watchMode: WatchMode.FOLDER // FEA009: Default to folder mode
 		};
 		// Initialize TopNRenderer with a placeholder container that will be set during render
 		this.topNRenderer = new TopNRenderer(this.container);
@@ -92,11 +109,24 @@ export class BacklinkCounterComponent {
 	 * - Single note path (legacy)
 	 * - Multiple note paths
 	 * - Display mode (FEA007)
+	 * - Watch mode and folder path (FEA009)
 	 */
-	updateWatchedItems(config: { notePath?: string[]; displayAs?: DisplayMode }): void {
+	updateWatchedItems(config: { 
+		notePath?: string[]; 
+		displayAs?: DisplayMode;
+		watchMode?: WatchMode;
+		folderPath?: string[];
+	}): void {
 		this.state.notePath = config.notePath;
 		if (config.displayAs !== undefined) {
 			this.state.displayAs = config.displayAs;
+		}
+		// FEA009: Update watch mode and folder path
+		if (config.watchMode !== undefined) {
+			this.state.watchMode = config.watchMode;
+		}
+		if (config.folderPath !== undefined) {
+			this.state.folderPath = config.folderPath;
 		}
 		this.updateCounts();
 		this.render();
@@ -165,27 +195,95 @@ export class BacklinkCounterComponent {
 	}
 
 	/**
+	 * Change watch mode (FEA009 - Mode Toggle)
+	 */
+	changeWatchMode(mode: WatchMode): void {
+		if (this.onModeChangeCallback) {
+			this.onModeChangeCallback(mode);
+		}
+	}
+
+	/**
+	 * Add a folder to watch (FEA009 - Folder watching)
+	 */
+	addFolder(folderPath: string): void {
+		if (this.onFolderAddedCallback) {
+			this.onFolderAddedCallback(folderPath);
+		}
+	}
+
+	/**
+	 * Remove the watched folder (FEA009 - Folder watching)
+	 */
+	removeFolder(): void {
+		if (this.onFolderRemovedCallback) {
+			this.onFolderRemovedCallback();
+		}
+	}
+
+	/**
+	 * Check if component is empty (no folder and no notes)
+	 * FEA009: Used to determine if mode toggle should be enabled
+	 */
+	isEmpty(): boolean {
+		const hasNotes = this.state.notePath && this.state.notePath.length > 0;
+		const hasFolder = this.state.folderPath && this.state.folderPath.length > 0;
+		return !hasNotes && !hasFolder;
+	}
+
+	/**
+	 * Check if mode toggle should be enabled
+	 * FEA009: Mode toggle is only enabled when component is empty
+	 */
+	isModeToggleEnabled(): boolean {
+		return this.isEmpty();
+	}
+
+	/**
 	 * Update all counter results based on current state
+	 * Handles both note mode and folder mode (FEA009)
 	 */
 	private updateCounts(): void {
 		this.counterResults = [];
 
-		// Handle multiple note paths
-		if (this.state.notePath && this.state.notePath.length > 0) {
-			if(typeof this.state.notePath === 'string'){
-				this.state.notePath = [this.state.notePath];
-			}
-			for (const notePath of this.state.notePath) {
-				const file = this.app.vault.getAbstractFileByPath(notePath);
-				if (file instanceof TFile) {
+		const currentMode = this.state.watchMode || WatchMode.FOLDER;
+
+		if (currentMode === WatchMode.FOLDER) {
+			// Folder watching mode (FEA009)
+			if (this.state.folderPath && this.state.folderPath.length > 0) {
+				const folderPath = this.state.folderPath[0]; // Currently supporting single folder
+				const notes = this.folderResolver.getNotesInFolder(folderPath);
+				
+				for (const file of notes) {
 					const backlinks = this.analysisService.getBacklinksForFile(file);
-					logger.warn('[BacklinkCounter] Calculating count for note:', file.path, backlinks);
 					const count = this.calculateCountForBacklinks(backlinks);
 					this.counterResults.push({
 						notePath: file.path,
 						noteTitle: file.basename,
 						count
 					});
+				}
+				
+				logger.log('[BacklinkCounter] Folder mode - found', notes.length, 'notes in', folderPath);
+			}
+		} else {
+			// Note watching mode (original behavior)
+			if (this.state.notePath && this.state.notePath.length > 0) {
+				if(typeof this.state.notePath === 'string'){
+					this.state.notePath = [this.state.notePath];
+				}
+				for (const notePath of this.state.notePath) {
+					const file = this.app.vault.getAbstractFileByPath(notePath);
+					if (file instanceof TFile) {
+						const backlinks = this.analysisService.getBacklinksForFile(file);
+						logger.warn('[BacklinkCounter] Calculating count for note:', file.path, backlinks);
+						const count = this.calculateCountForBacklinks(backlinks);
+						this.counterResults.push({
+							notePath: file.path,
+							noteTitle: file.basename,
+							count
+						});
+					}
 				}
 			}
 		}
@@ -284,7 +382,7 @@ export class BacklinkCounterComponent {
 		this.container.empty();
 		this.container.addClass('backlink-counter-component');
 
-		// Render controls
+		// Render controls (including mode toggle)
 		this.renderControls();
 
 		// Render content based on display mode
@@ -301,11 +399,70 @@ export class BacklinkCounterComponent {
 	}
 
 	/**
+	 * Render the mode toggle (Folder/Note switch)
+	 * FEA009: Only shown when callbacks are provided (code block context)
+	 */
+	private renderModeToggle(parentContainer: HTMLElement): void {
+		// Only show mode toggle if we have the callback (code block context, not Note Insights View)
+		if (!this.onModeChangeCallback) {
+			return;
+		}
+
+		const toggleContainer = parentContainer.createEl('div', { cls: 'watch-mode-toggle-container' });
+		
+		const currentMode = this.state.watchMode || WatchMode.FOLDER;
+		const isEnabled = this.isModeToggleEnabled();
+		
+		// Create toggle button group
+		const toggleGroup = toggleContainer.createEl('div', { 
+			cls: `watch-mode-toggle ${isEnabled ? 'enabled' : 'disabled'}`
+		});
+		
+		// Folder button
+		const folderButton = toggleGroup.createEl('button', {
+			cls: `watch-mode-option ${currentMode === WatchMode.FOLDER ? 'active' : ''}`,
+			text: 'Folder',
+			attr: { 
+				'aria-label': 'Watch folder mode',
+				'disabled': isEnabled ? null : 'true'
+			}
+		});
+		
+		// Note button
+		const noteButton = toggleGroup.createEl('button', {
+			cls: `watch-mode-option ${currentMode === WatchMode.NOTE ? 'active' : ''}`,
+			text: 'Note',
+			attr: { 
+				'aria-label': 'Watch note mode',
+				'disabled': isEnabled ? null : 'true'
+			}
+		});
+		
+		// Only attach event listeners if enabled
+		if (isEnabled) {
+			folderButton.addEventListener('click', () => {
+				if (currentMode !== WatchMode.FOLDER) {
+					this.changeWatchMode(WatchMode.FOLDER);
+				}
+			});
+			
+			noteButton.addEventListener('click', () => {
+				if (currentMode !== WatchMode.NOTE) {
+					this.changeWatchMode(WatchMode.NOTE);
+				}
+			});
+		}
+	}
+
+	/**
 	 * Render the control elements (period selector, display mode toggle, add button)
 	 */
 	private renderControls(): void {
 		const controlsContainer = this.container.createEl('div', { cls: 'backlink-counter-controls' });
 		
+		// FEA009: Render mode toggle first in the controls
+		this.renderModeToggle(controlsContainer);
+
 		// Display mode dropdown button (FEA007, FEA006)
 		if (this.shouldShowDisplayModeToggle()) {
 			const currentMode = this.state.displayAs || DisplayMode.DEFAULT;
@@ -346,26 +503,51 @@ export class BacklinkCounterComponent {
 			this.onPeriodChange(select.value as TimePeriod);
 		});
 
-		// Add Note button (only show when callbacks provided)
-		if (this.onNoteAddedCallback) {
+		// Add button (Folder or Note based on watch mode) - only show when callbacks provided
+		const currentMode = this.state.watchMode || WatchMode.FOLDER;
+		const hasFolderCallback = this.onFolderAddedCallback;
+		const hasNoteCallback = this.onNoteAddedCallback;
+		
+		// Show add button if we have the appropriate callback for the current mode
+		if ((currentMode === WatchMode.FOLDER && hasFolderCallback) || 
+		    (currentMode === WatchMode.NOTE && hasNoteCallback)) {
 			const currentCount = this.state.notePath?.length || 0;
 			const maxWatchedNotes = this.settingsService.getSettings().maxWatchedNotes;
-			const isAtLimit = currentCount >= maxWatchedNotes;
+			
+			// In folder mode, we can only watch one folder, so check if folder exists
+			const isFolderMode = currentMode === WatchMode.FOLDER;
+			const hasFolderSelected = this.state.folderPath && this.state.folderPath.length > 0;
+			const isAtLimit = isFolderMode ? hasFolderSelected : (currentCount >= maxWatchedNotes);
 			
 			const addButton = controlsContainer.createEl('button', { 
 				cls: `backlink-counter-add-button ${isAtLimit ? 'disabled' : ''}`,
 				attr: { 
 					'aria-label': isAtLimit 
-						? `Maximum limit of ${maxWatchedNotes} notes reached` 
-						: 'Add note to watch'
+						? (isFolderMode 
+							? 'A folder is already selected' 
+							: `Maximum limit of ${maxWatchedNotes} notes reached`)
+						: (isFolderMode ? 'Add folder to watch' : 'Add note to watch')
 				}
 			});
-			setIcon(addButton, 'plus');
+			
+			// Set button text based on mode
+			const buttonText = isFolderMode ? ' +' : ' +';
+			addButton.textContent = buttonText;
+			
+			// Set icon based on mode
+			const iconName = isFolderMode ? 'folder-plus' : 'plus';
+			setIcon(addButton, iconName);
 			
 			if (isAtLimit) {
 				addButton.disabled = true;
 			} else {
-				addButton.addEventListener('click', () => this.showNoteSelector());
+				addButton.addEventListener('click', () => {
+					if (isFolderMode) {
+						this.showFolderSelector();
+					} else {
+						this.showNoteSelector();
+					}
+				});
 			}
 		}
 	}
@@ -384,58 +566,134 @@ export class BacklinkCounterComponent {
 	private renderDefaultMode(): void {
 		// Display counter results
 		if (this.counterResults.length === 0) {
-			// No data to display
-			const emptyMessage = this.container.createEl('div', {
-				cls: 'backlink-counter-empty',
-				text: 'No notes being watched'
-			});
-		} else if (this.counterResults.length === 1) {
-			// Single note display (original layout)
-			const result = this.counterResults[0];
-			const countContainer = this.container.createEl('div', { cls: 'backlink-counter-display' });
-			
-			const countNumber = countContainer.createEl('div', { 
-				cls: 'backlink-counter-number',
-				text: result.count.toString()
-			});
-
-			const countLabel = countContainer.createEl('div', {
-				cls: 'backlink-counter-label',
-				text: this.getCountLabel(result.count)
-			});
+			// Empty state - show placeholder with mode selector
+			this.renderEmptyState();
 		} else {
-			// Multiple notes display (FEA009)
-			const listContainer = this.container.createEl('div', { cls: 'backlink-counter-list' });
+			const currentMode = this.state.watchMode || WatchMode.FOLDER;
 			
-			// sort counter results by count descending
-			this.counterResults.sort((a, b) => b.count - a.count);
-
-			for (const result of this.counterResults) {
-				const itemContainer = listContainer.createEl('div', { cls: 'backlink-counter-item' });
+			// In folder mode, show folder info first (FEA009 - Task 3.5)
+			if (currentMode === WatchMode.FOLDER && this.state.folderPath && this.state.folderPath.length > 0) {
+				this.renderFolderHeader();
+			}
+			
+			if (this.counterResults.length === 1 && currentMode === WatchMode.NOTE) {
+				// Single note display (original layout - only in note mode)
+				const result = this.counterResults[0];
+				const countContainer = this.container.createEl('div', { cls: 'backlink-counter-display' });
 				
-				const titleEl = itemContainer.createEl('div', {
-					cls: 'backlink-counter-item-title',
-					text: result.noteTitle
+				const countNumber = countContainer.createEl('div', { 
+					cls: 'backlink-counter-number',
+					text: result.count.toString()
 				});
 
-				const countEl = itemContainer.createEl('div', {
-					cls: 'backlink-counter-item-count',
-					text: `${result.count} ${result.count === 1 ? 'backlink' : 'backlinks'}`
+				const countLabel = countContainer.createEl('div', {
+					cls: 'backlink-counter-label',
+					text: this.getCountLabel(result.count)
 				});
+			} else {
+				// Multiple notes display (FEA009) - or notes in folder mode
+				const listContainer = this.container.createEl('div', { cls: 'backlink-counter-list' });
+				
+				// sort counter results by count descending
+				this.counterResults.sort((a, b) => b.count - a.count);
 
-				// Add remove button (only when callback provided)
-				if (this.onNoteRemovedCallback) {
-					const removeButton = itemContainer.createEl('button', {
-						cls: 'backlink-counter-item-remove',
-						attr: { 'aria-label': `Remove ${result.noteTitle}` }
+				// Phase 4: Display limit implementation - limit to maxWatchedNotes (FEA009)
+				const maxWatchedNotes = this.settingsService.getSettings().maxWatchedNotes;
+				const displayedNotes = this.counterResults.slice(0, maxWatchedNotes);
+				const totalNotes = this.counterResults.length;
+				const isLimited = totalNotes > maxWatchedNotes;
+
+				// Render limited list
+				for (const result of displayedNotes) {
+					const itemContainer = listContainer.createEl('div', { cls: 'backlink-counter-item' });
+					
+					const titleEl = itemContainer.createEl('div', {
+						cls: 'backlink-counter-item-title',
+						text: result.noteTitle
 					});
-					setIcon(removeButton, 'x');
-					removeButton.addEventListener('click', (e) => {
-						e.stopPropagation();
-						this.removeNote(result.notePath);
+
+					const countEl = itemContainer.createEl('div', {
+						cls: 'backlink-counter-item-count',
+						text: `${result.count} ${result.count === 1 ? 'backlink' : 'backlinks'}`
+					});
+
+					// Add remove button (only when callback provided and in note mode)
+					if (this.onNoteRemovedCallback && currentMode === WatchMode.NOTE) {
+						const removeButton = itemContainer.createEl('button', {
+							cls: 'backlink-counter-item-remove',
+							attr: { 'aria-label': `Remove ${result.noteTitle}` }
+						});
+						setIcon(removeButton, 'x');
+						removeButton.addEventListener('click', (e) => {
+							e.stopPropagation();
+							this.removeNote(result.notePath);
+						});
+					}
+				}
+
+				// Show limit message if applicable (Phase 4 - FEA009)
+				if (isLimited) {
+					const limitMessage = listContainer.createEl('div', {
+						cls: 'backlink-counter-limit-message',
+						text: `Showing top ${maxWatchedNotes} of ${totalNotes} notes`
 					});
 				}
 			}
+		}
+	}
+
+	/**
+	 * Render empty state with mode selector and placeholder
+	 * FEA009: Task 3.4
+	 */
+	private renderEmptyState(): void {
+		const emptyContainer = this.container.createEl('div', { cls: 'backlink-counter-empty-state' });
+		
+		// Add placeholder icon and text
+		const placeholderIcon = emptyContainer.createEl('div', { cls: 'empty-state-icon' });
+		setIcon(placeholderIcon, 'inbox');
+		
+		const placeholderText = emptyContainer.createEl('div', { 
+			cls: 'empty-state-text',
+			text: 'Add a folder or note to start showing stats'
+		});
+		
+		// Add hint text
+		const hintText = emptyContainer.createEl('div', {
+			cls: 'empty-state-hint',
+			text: `Click the ${this.state.watchMode === WatchMode.FOLDER ? 'folder' : 'note'} button above to get started`
+		});
+	}
+
+	/**
+	 * Render folder header with folder name and remove button
+	 * FEA009: Task 3.5 - Folder mode populated UI
+	 */
+	private renderFolderHeader(): void {
+		const folderPath = this.state.folderPath?.[0];
+		if (!folderPath) return;
+
+		const headerContainer = this.container.createEl('div', { cls: 'backlink-counter-folder-header' });
+		
+		// Folder icon and name
+		const folderInfo = headerContainer.createEl('div', { cls: 'folder-info' });
+		const icon = folderInfo.createEl('span', { cls: 'folder-icon', text: '📁' });
+		const nameEl = folderInfo.createEl('span', {
+			cls: 'folder-name',
+			text: folderPath.endsWith('/') ? folderPath : folderPath + '/'
+		});
+		
+		// Remove button (only if callback provided)
+		if (this.onFolderRemovedCallback) {
+			const removeButton = headerContainer.createEl('button', {
+				cls: 'folder-remove-button',
+				attr: { 'aria-label': `Remove folder ${folderPath}` }
+			});
+			setIcon(removeButton, 'x');
+			removeButton.addEventListener('click', (e) => {
+				e.stopPropagation();
+				this.removeFolder();
+			});
 		}
 	}
 
@@ -446,10 +704,22 @@ export class BacklinkCounterComponent {
 		// Create container for top-N visualization
 		const topNContainer = this.container.createEl('div', { cls: 'backlink-counter-top-n' });
 		
+		// Phase 4: Apply display limit
+		const maxWatchedNotes = this.settingsService.getSettings().maxWatchedNotes;
+		const displayedResults = this.counterResults.slice(0, maxWatchedNotes);
+		
 		// Update TopNRenderer container and render
 		this.topNRenderer = new TopNRenderer(topNContainer);
 		const periodLabel = DateRangeCalculator.getPeriodLabel(this.state.selectedPeriod);
-		this.topNRenderer.render(this.counterResults, periodLabel);
+		this.topNRenderer.render(displayedResults, periodLabel);
+		
+		// Show limit message if applicable
+		if (this.counterResults.length > maxWatchedNotes) {
+			const limitMessage = topNContainer.createEl('div', {
+				cls: 'backlink-counter-limit-message',
+				text: `Showing top ${maxWatchedNotes} of ${this.counterResults.length} notes`
+			});
+		}
 	}
 
 	/**
@@ -459,11 +729,23 @@ export class BacklinkCounterComponent {
 		// Create container for pie visualization
 		const pieContainer = this.container.createEl('div', { cls: 'backlink-counter-pie' });
 		
+		// Phase 4: Apply display limit
+		const maxWatchedNotes = this.settingsService.getSettings().maxWatchedNotes;
+		const displayedResults = this.counterResults.slice(0, maxWatchedNotes);
+		
 		// Update PieRenderer container and render with colors from settings (FEA010)
 		this.pieRenderer = new PieRenderer(pieContainer);
 		const periodLabel = DateRangeCalculator.getPeriodLabel(this.state.selectedPeriod);
 		const colors = this.settingsService.getSeriesColors();
-		this.pieRenderer.render(this.counterResults, periodLabel, colors);
+		this.pieRenderer.render(displayedResults, periodLabel, colors);
+		
+		// Show limit message if applicable
+		if (this.counterResults.length > maxWatchedNotes) {
+			const limitMessage = pieContainer.createEl('div', {
+				cls: 'backlink-counter-limit-message',
+				text: `Showing top ${maxWatchedNotes} of ${this.counterResults.length} notes`
+			});
+		}
 	}
 
 	/**
@@ -473,25 +755,28 @@ export class BacklinkCounterComponent {
 		// Create container for time-series visualization
 		const timeSeriesContainer = this.container.createEl('div', { cls: 'backlink-counter-time-series' });
 		
+		// Phase 4: Apply display limit
+		const maxWatchedNotes = this.settingsService.getSettings().maxWatchedNotes;
+		const displayedResults = this.counterResults.slice(0, maxWatchedNotes);
+		
 		// Get time-series data for each watched note
 		const firstDayOfWeek = this.settingsService.getSettings().firstDayOfWeek;
 		const dateRange = DateRangeCalculator.calculateDateRange(this.state.selectedPeriod, firstDayOfWeek);
 		const timeSeriesData: Array<{ notePath: string; noteTitle: string; data: any }> = [];
 		
-		if (this.state.notePath && this.state.notePath.length > 0) {
-			for (const notePath of this.state.notePath) {
-				const file = this.app.vault.getAbstractFileByPath(notePath);
-				if (file instanceof TFile) {
-					// Get daily backlink data for this note within the period
-					const backlinks = this.analysisService.getBacklinksForFile(file);
-					const dailyData = this.classifier.getDailyBacklinksInRange(backlinks, dateRange.startDate, dateRange.endDate);
-					
-					timeSeriesData.push({
-						notePath: file.path,
-						noteTitle: file.basename,
-						data: dailyData
-					});
-				}
+		// Build time series data from displayed results (limited)
+		for (const result of displayedResults) {
+			const file = this.app.vault.getAbstractFileByPath(result.notePath);
+			if (file instanceof TFile) {
+				// Get daily backlink data for this note within the period
+				const backlinks = this.analysisService.getBacklinksForFile(file);
+				const dailyData = this.classifier.getDailyBacklinksInRange(backlinks, dateRange.startDate, dateRange.endDate);
+				
+				timeSeriesData.push({
+					notePath: file.path,
+					noteTitle: file.basename,
+					data: dailyData
+				});
 			}
 		}
 		
@@ -502,6 +787,14 @@ export class BacklinkCounterComponent {
 		this.timeSeriesRenderer = new TimeSeriesRenderer(timeSeriesContainer);
 		const periodLabel = DateRangeCalculator.getPeriodLabel(this.state.selectedPeriod);
 		this.timeSeriesRenderer.render(seriesData, periodLabel);
+		
+		// Show limit message if applicable
+		if (this.counterResults.length > maxWatchedNotes) {
+			const limitMessage = timeSeriesContainer.createEl('div', {
+				cls: 'backlink-counter-limit-message',
+				text: `Showing top ${maxWatchedNotes} of ${this.counterResults.length} notes`
+			});
+		}
 	}
 
 	/**
@@ -510,6 +803,16 @@ export class BacklinkCounterComponent {
 	private showNoteSelector(): void {
 		const modal = new NoteSelector(this.app, (file) => {
 			this.addNote(file.path);
+		});
+		modal.open();
+	}
+
+	/**
+	 * Show folder selector modal to add a folder (FEA009)
+	 */
+	private showFolderSelector(): void {
+		const modal = new FolderSelector(this.app, (folder) => {
+			this.addFolder(folder.path);
 		});
 		modal.open();
 	}
