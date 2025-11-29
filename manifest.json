@@ -1,9 +1,9 @@
 {
-	"id": "vault-visualizer",
-	"name": "Vault Visualizer",
+	"id": "journal-visualizer",
+	"name": "Journal Visualizer",
 	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
-	"description": "Turn your notes into insight. Get contextual stats, dashboards, and smart suggestions for your vault.",
-	"author": "mitune",
+	"description": "Effortless insight about your Daily Notes. No tinker, no setup, just click and see.",
+	"author": "Anton Mitune (@anton-mitune)",
 	"isDesktopOnly": false
 }

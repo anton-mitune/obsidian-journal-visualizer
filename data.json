@@ -1,0 +1,16 @@
+{
+  "firstDayOfWeek": 1,
+  "maxWatchedNotes": 50,
+  "suggestedColorPalette": "pastel",
+  "logLevel": 1,
+  "series1Color": "#cdb4db",
+  "series2Color": "#ffc8dd",
+  "series3Color": "#ffafcc",
+  "series4Color": "#bde0fe",
+  "series5Color": "#a2d2ff",
+  "series6Color": "#9bf6ff",
+  "series7Color": "#fdffb6",
+  "series8Color": "#caffbf",
+  "series9Color": "#9ae6b4",
+  "series10Color": "#d0f4de"
+}

@@ -1,6 +1,13 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const pluginDir = path.join(__dirname, 'joviz-demo-vault', '.obsidian', 'plugins', 'journal-visualizer');
 
 const banner =
 `/*
@@ -43,7 +50,34 @@ const context = await esbuild.context({
 
 if (prod) {
 	await context.rebuild();
+	// Copy to demo vault plugin folder
+	try {
+		if (!fs.existsSync(pluginDir)) {
+			fs.mkdirSync(pluginDir, { recursive: true });
+		}
+		fs.copyFileSync('main.js', path.join(pluginDir, 'main.js'));
+		fs.copyFileSync('manifest.json', path.join(pluginDir, 'manifest.json'));
+		fs.copyFileSync('styles.css', path.join(pluginDir, 'styles.css'));
+		if (fs.existsSync('data.json')) {
+			fs.copyFileSync('data.json', path.join(pluginDir, 'data.json'));
+		}
+		console.log(`✓ Plugin built and copied to demo vault`);
+	} catch (err) {
+		console.warn(`Note: Could not copy to demo vault (${err.message}). Run 'npm run generate-demo-vault' first.`);
+	}
 	process.exit(0);
 } else {
 	await context.watch();
+	// Watch mode: copy files on rebuild
+	context.onEnd(async () => {
+		try {
+			if (fs.existsSync(pluginDir)) {
+				fs.copyFileSync('main.js', path.join(pluginDir, 'main.js'));
+				fs.copyFileSync('styles.css', path.join(pluginDir, 'styles.css'));
+				console.log(`✓ Plugin copied to demo vault`);
+			}
+		} catch (err) {
+			// Silently fail in watch mode
+		}
+	});
 }
