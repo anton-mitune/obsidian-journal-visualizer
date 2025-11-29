@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Generate demo vault
+        run: npm run generate-demo-vault
+
+      - name: Create demo vault zip
+        run: |
+          mkdir -p dist
+          cd joviz-demo-vault
+          zip -r ../dist/journal-visualizer-demo-vault.zip .
+          cd ..
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=$(jq -r '.version' manifest.json)" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          release_name: Release v${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+
+      - name: Upload main.js
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./main.js
+          asset_name: main.js
+          asset_content_type: application/javascript
+
+      - name: Upload manifest.json
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./manifest.json
+          asset_name: manifest.json
+          asset_content_type: application/json
+
+      - name: Upload styles.css
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./styles.css
+          asset_name: styles.css
+          asset_content_type: text/css
+
+      - name: Upload Demo Vault Zip
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/journal-visualizer-demo-vault.zip
+          asset_name: journal-visualizer-demo-vault.zip
+          asset_content_type: application/zip

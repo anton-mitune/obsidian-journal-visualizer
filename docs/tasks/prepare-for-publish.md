@@ -1,0 +1,36 @@
+- [x] create a demo vault
+	- [x] populate sample activities
+	- [x] add sample events
+	- [x] add sample Outings
+	- [x] add sample shops
+	- [x] add sample restaurants
+	- [x] add sample Anime
+	- [x] add sample Games
+	- [x] add sample Manga
+	- [x] add sample Movies
+	- [x] add sample Series
+	- [x] add sample persons
+	- [x] add sample Symptoms
+	- [x] add sample notes
+	- [x] add sample tasks
+	- [x] add sample interstitial journal entries over 2 years
+	- [x] auto-generate via `npm run generate-demo-vault`
+
+Rules for intertitial journaling entries:
+	- at least one entry per week
+	- entries should reflect seasonal changes
+	- entries should reflect holidays
+	- entries should reflect personal growth
+	- entries should reflect changes in interests
+	- entries should reference sample activities, events, outings, shops, restaurants, Anime, Games, Manga, Movies, Series, persons, Symptoms, notes, and tasks
+	- entries should be varied in length and detail
+	- entries should be formatted consistently like in the template.
+	- entries don't need to use every half hour block. BLocks can be ommited. It is implied the activity logged at certain time continues until the next logged activity.
+	- use bullet points under time blocks to add additional context/details about the activity logged at that time.
+
+- [x] create repo README suitable for obsidian community publish
+- [ ] publish source code to gitlab repo
+- [ ] publish release bundled plugin to github for releases
+- [ ] add npm or make commands to build and publish plugin to gitlab and github
+- [ ] review repo license
+- [ ] submit plugin to Obsidian Community Plugins for review
