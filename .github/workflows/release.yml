@@ -46,8 +46,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create v${{ steps.version.outputs.VERSION }} \
-            --title "Release v${{ steps.version.outputs.VERSION }}" \
+          gh release create ${{ steps.version.outputs.VERSION }} \
+            --title "${{ steps.version.outputs.VERSION }}" \
             --draft=false \
             ./main.js \
             ./manifest.json \
