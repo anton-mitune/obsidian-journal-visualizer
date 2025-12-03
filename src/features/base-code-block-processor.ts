@@ -1,5 +1,4 @@
 import { App, Plugin, MarkdownPostProcessorContext, TFile, EventRef } from 'obsidian';
-import { CounterConfig, TimePeriod } from '../types';
 import { logger } from '../utils/logger';
 
 /**

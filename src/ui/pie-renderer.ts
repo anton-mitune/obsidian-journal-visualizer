@@ -34,7 +34,7 @@ export class PieRenderer {
 		const sortedResults = this.sortResults(results);
 
 		// Create canvas element for Chart.js
-		const canvas = this.container.createEl('canvas', {
+		this.container.createEl('canvas', {
 			cls: 'pie-chart-canvas'
 		});
 
@@ -95,7 +95,7 @@ export class PieRenderer {
 		});
 
 		// Build conic-gradient string for the pie chart
-		let gradientStops: string[] = [];
+		const gradientStops: string[] = [];
 		let currentAngle = 0; // Start at 0 degrees (12 o'clock)
 
 		// Use provided colors or fall back to default palette (FEA010)

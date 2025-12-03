@@ -1,5 +1,5 @@
-import { App, Plugin, MarkdownPostProcessorContext, TFile, Notice, MarkdownRenderChild } from 'obsidian';
-import { BaseCodeBlockProcessor, CodeBlockInstance } from './base-code-block-processor';
+import { App, Plugin, MarkdownPostProcessorContext, MarkdownRenderChild } from 'obsidian';
+import { BaseCodeBlockProcessor } from './base-code-block-processor';
 import { BacklinkCounterComponent } from '../ui/backlink-counter-component';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
 import { SettingsService } from '../services/settings-service';
@@ -191,7 +191,7 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 	 * Parse counter configuration from code block source
 	 */
 	private parseConfig(source: string): CounterCodeBlockConfig | null {
-		let config = this.parseCodeBlockConfig(source);
+		const config = this.parseCodeBlockConfig(source);
 
 		// validate config format against expected types
 		// if id is not present, error, we won't be able to update later

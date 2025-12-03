@@ -1,20 +1,6 @@
 import { NoteCounterResult } from '../types';
 
 /**
- * Interface for chart data expected by Chart.js bar chart
- */
-interface ChartData {
-	labels: string[];
-	datasets: {
-		label: string;
-		data: number[];
-		backgroundColor: string;
-		borderColor: string;
-		borderWidth: number;
-	}[];
-}
-
-/**
  * TopNRenderer - Renders horizontal bar charts for top-N note backlink counts
  * FEA007: Top Bars Visualization
  * 
@@ -47,7 +33,7 @@ export class TopNRenderer {
 		const sortedResults = this.sortResults(results);
 
 		// Create canvas element for Chart.js
-		const canvas = this.container.createEl('canvas', {
+		this.container.createEl('canvas', {
 			cls: 'top-n-chart-canvas'
 		});
 
@@ -112,7 +98,7 @@ export class TopNRenderer {
 			});
 
 			const barWidth = maxCount > 0 ? (result.count / maxCount) * 100 : 0;
-			const bar = barWrapper.createEl('div', {
+			barWrapper.createEl('div', {
 				cls: 'top-n-bar',
 				attr: { 
 					style: `width: ${barWidth}%`,

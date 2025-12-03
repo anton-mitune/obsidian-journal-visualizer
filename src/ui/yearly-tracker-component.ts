@@ -198,7 +198,7 @@ export class YearlyTrackerComponent {
 		});
 
 		// Current year display
-		const yearDisplay = yearNav.createEl('span', {
+		yearNav.createEl('span', {
 			text: this.navigationState.currentYear.toString(),
 			cls: 'yearly-tracker-current-year'
 		});

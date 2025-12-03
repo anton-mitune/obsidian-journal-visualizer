@@ -1,4 +1,4 @@
-import { App, Plugin, WorkspaceLeaf } from 'obsidian';
+import { App, Plugin } from 'obsidian';
 import { NoteInsightsView, NOTE_INSIGHTS_VIEW_TYPE } from './note-insights-view';
 import { DailyNoteBacklinkInfo, YearBounds, MonthBounds } from '../types';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';

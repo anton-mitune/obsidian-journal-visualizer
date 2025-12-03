@@ -263,7 +263,7 @@ export class MonthlyTrackerComponent {
 		});
 
 		// Current month/year display
-		const monthDisplay = monthNav.createEl('span', {
+		monthNav.createEl('span', {
 			text: selectedDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
 			cls: 'monthly-tracker-current-month'
 		});

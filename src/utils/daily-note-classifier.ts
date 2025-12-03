@@ -156,7 +156,7 @@ export class DailyNoteClassifier {
 			const dateString = this.extractDateFromDailyNote(backlinkInfo.file);
 			if (dateString) {
 				// Optionally extract lines from the daily note file for hover summary
-				let lines: string[] | undefined = undefined;
+				const lines: string[] | undefined = undefined;
 				// Try to get file contents and extract lines containing the active note link
 				// This is best-effort and may be skipped for performance
 				// Uncomment below if you want to extract lines:

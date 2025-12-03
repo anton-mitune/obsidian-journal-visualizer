@@ -85,7 +85,7 @@ export class BacklinkWatcher {
 	/**
 	 * Handle workspace leaf changes
 	 */
-	private handleLeafChange(leaf: WorkspaceLeaf | null): void {
+	private handleLeafChange(): void {
 		this.updateBacklinkCountForCurrentFile();
 	}
 

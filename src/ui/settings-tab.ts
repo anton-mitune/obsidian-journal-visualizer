@@ -115,7 +115,7 @@ export class VaultVisualizerSettingTab extends PluginSettingTab {
 		// Advanced Settings Section (collapsed by default)
 		containerEl.createEl('h3', { text: 'Advanced Settings' });
 		const advancedContainer = containerEl.createEl('details', { cls: 'vault-visualizer-advanced-settings' });
-		const summary = advancedContainer.createEl('summary', { text: 'Show advanced settings' });
+		advancedContainer.createEl('summary', { text: 'Show advanced settings' });
 
 		// Log Level Setting
 		new Setting(advancedContainer)

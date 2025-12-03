@@ -1,4 +1,4 @@
-import { NoteCounterResult, DailyNoteYearlyData } from '../types';
+import { DailyNoteYearlyData } from '../types';
 
 /**
  * Data point for a time series

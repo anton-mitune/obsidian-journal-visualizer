@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, TFile } from 'obsidian';
+import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { DailyNoteBacklinkInfo, YearBounds, MonthBounds } from '../types';
 import { YearlyTrackerComponent } from './yearly-tracker-component';
 import { MonthlyTrackerComponent } from './monthly-tracker-component';

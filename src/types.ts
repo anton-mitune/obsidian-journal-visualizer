@@ -172,14 +172,6 @@ export interface CounterState {
 	displayAs?: DisplayMode;
 }
 
-export interface CounterConfig{
-	id: string;
-	notePath: string | string[];
-	selectedPeriod: TimePeriod;
-	// FEA007: Display mode support
-	displayAs?: DisplayMode;
-}
-
 export interface DateRange {
 	startDate: Date;
 	endDate: Date;

@@ -581,12 +581,12 @@ export class BacklinkCounterComponent {
 				const result = this.counterResults[0];
 				const countContainer = this.container.createEl('div', { cls: 'backlink-counter-display' });
 				
-				const countNumber = countContainer.createEl('div', { 
+				countContainer.createEl('div', { 
 					cls: 'backlink-counter-number',
 					text: result.count.toString()
 				});
 
-				const countLabel = countContainer.createEl('div', {
+				countContainer.createEl('div', {
 					cls: 'backlink-counter-label',
 					text: this.getCountLabel(result.count)
 				});
@@ -607,12 +607,12 @@ export class BacklinkCounterComponent {
 				for (const result of displayedNotes) {
 					const itemContainer = listContainer.createEl('div', { cls: 'backlink-counter-item' });
 					
-					const titleEl = itemContainer.createEl('div', {
+					itemContainer.createEl('div', {
 						cls: 'backlink-counter-item-title',
 						text: result.noteTitle
 					});
 
-					const countEl = itemContainer.createEl('div', {
+					itemContainer.createEl('div', {
 						cls: 'backlink-counter-item-count',
 						text: `${result.count} ${result.count === 1 ? 'backlink' : 'backlinks'}`
 					});
@@ -633,7 +633,7 @@ export class BacklinkCounterComponent {
 
 				// Show limit message if applicable (Phase 4 - FEA009)
 				if (isLimited) {
-					const limitMessage = listContainer.createEl('div', {
+					listContainer.createEl('div', {
 						cls: 'backlink-counter-limit-message',
 						text: `Showing top ${maxWatchedNotes} of ${totalNotes} notes`
 					});
@@ -653,13 +653,13 @@ export class BacklinkCounterComponent {
 		const placeholderIcon = emptyContainer.createEl('div', { cls: 'empty-state-icon' });
 		setIcon(placeholderIcon, 'inbox');
 		
-		const placeholderText = emptyContainer.createEl('div', { 
+		emptyContainer.createEl('div', { 
 			cls: 'empty-state-text',
 			text: 'Add a folder or note to start showing stats'
 		});
 		
 		// Add hint text
-		const hintText = emptyContainer.createEl('div', {
+		emptyContainer.createEl('div', {
 			cls: 'empty-state-hint',
 			text: `Click the ${this.state.watchMode === WatchMode.FOLDER ? 'folder' : 'note'} button above to get started`
 		});
@@ -677,8 +677,8 @@ export class BacklinkCounterComponent {
 		
 		// Folder icon and name
 		const folderInfo = headerContainer.createEl('div', { cls: 'folder-info' });
-		const icon = folderInfo.createEl('span', { cls: 'folder-icon', text: '📁' });
-		const nameEl = folderInfo.createEl('span', {
+		folderInfo.createEl('span', { cls: 'folder-icon', text: '📁' });
+		folderInfo.createEl('span', {
 			cls: 'folder-name',
 			text: folderPath.endsWith('/') ? folderPath : folderPath + '/'
 		});
@@ -715,7 +715,7 @@ export class BacklinkCounterComponent {
 		
 		// Show limit message if applicable
 		if (this.counterResults.length > maxWatchedNotes) {
-			const limitMessage = topNContainer.createEl('div', {
+			topNContainer.createEl('div', {
 				cls: 'backlink-counter-limit-message',
 				text: `Showing top ${maxWatchedNotes} of ${this.counterResults.length} notes`
 			});
@@ -741,7 +741,7 @@ export class BacklinkCounterComponent {
 		
 		// Show limit message if applicable
 		if (this.counterResults.length > maxWatchedNotes) {
-			const limitMessage = pieContainer.createEl('div', {
+			pieContainer.createEl('div', {
 				cls: 'backlink-counter-limit-message',
 				text: `Showing top ${maxWatchedNotes} of ${this.counterResults.length} notes`
 			});
@@ -790,7 +790,7 @@ export class BacklinkCounterComponent {
 		
 		// Show limit message if applicable
 		if (this.counterResults.length > maxWatchedNotes) {
-			const limitMessage = timeSeriesContainer.createEl('div', {
+			timeSeriesContainer.createEl('div', {
 				cls: 'backlink-counter-limit-message',
 				text: `Showing top ${maxWatchedNotes} of ${this.counterResults.length} notes`
 			});

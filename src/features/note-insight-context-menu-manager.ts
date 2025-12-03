@@ -1,4 +1,4 @@
-import { App, Editor, Menu, Plugin, View, MarkdownView, MarkdownFileInfo } from 'obsidian';
+import { App, Editor, Menu, Plugin, MarkdownView, MarkdownFileInfo } from 'obsidian';
 import { NoteSelector } from '../ui/note-selector';
 
 /**

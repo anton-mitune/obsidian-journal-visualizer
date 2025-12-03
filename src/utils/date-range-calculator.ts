@@ -58,7 +58,7 @@ export class DateRangeCalculator {
 			const currentDayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
 			
 			// Calculate days to subtract to get to start of week
-			let daysToSubtract = (currentDayOfWeek - weekStartDay + 7) % 7;
+			const daysToSubtract = (currentDayOfWeek - weekStartDay + 7) % 7;
 			
 			// First day of week at midnight
 			const year = now.getFullYear();
