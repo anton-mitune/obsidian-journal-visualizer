@@ -1076,9 +1076,11 @@ The journal entries cross-reference everything, so you'll see meaningful backlin
   console.log('✓ Demo vault generation complete!');
 }
 
-if (require.main === module) {
-  const args = require('minimist')(process.argv.slice(2));
-  generate({ out: args.out, end: args.end });
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const args = process.argv.slice(2);
+  const out = args.find(arg => arg.startsWith('--out='))?.split('=')[1];
+  const end = args.find(arg => arg.startsWith('--end='))?.split('=')[1];
+  generate({ out, end });
 }
 
-module.exports = { generate };
+export { generate };
