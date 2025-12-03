@@ -31,8 +31,8 @@ export class BacklinkWatcher {
 		this.onNoteInfoChanged = onNoteInfoChanged;
 		
 		// Bind event handlers once
-		this.boundHandleLeafChange = this.handleLeafChange.bind(this);
-		this.boundHandleFileOpen = this.handleFileOpen.bind(this);
+		this.boundHandleLeafChange = this.handleLeafChange.bind(this) as (leaf: WorkspaceLeaf | null) => void;
+		this.boundHandleFileOpen = this.handleFileOpen.bind(this) as (file: TFile | null) => void;
 	}
 
 	/**
@@ -93,7 +93,7 @@ export class BacklinkWatcher {
 	 * Handle file open events
 	 */
 	private handleFileOpen(file: TFile | null): void {
-		if (file && file !== this.currentFile) {
+		if (file instanceof TFile && file !== this.currentFile) {
 			this.currentFile = file;
 			this.updateBacklinkCount(file);
 		}
@@ -104,7 +104,7 @@ export class BacklinkWatcher {
 	 */
 	private updateBacklinkCountForCurrentFile(): void {
 		const activeFile = this.app.workspace.getActiveFile();
-		if (activeFile && activeFile !== this.currentFile) {
+		if (activeFile instanceof TFile && activeFile !== this.currentFile) {
 			this.currentFile = activeFile;
 			this.updateBacklinkCount(activeFile);
 		}

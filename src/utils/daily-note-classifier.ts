@@ -15,9 +15,17 @@ export class DailyNoteClassifier {
 	 * Get the daily notes folder path from Obsidian settings
 	 */
 	private getDailyNotesFolder(): string {
-		// Access daily notes plugin settings
-		const dailyNotesSettings = (this.app as any).internalPlugins?.plugins?.['daily-notes']?.instance?.options;
-		return dailyNotesSettings?.folder || '';
+		try {
+			// Access daily notes plugin settings using type narrowing
+			const internalPlugins = (this.app as unknown as Record<string, unknown>).internalPlugins as Record<string, unknown> | undefined;
+			const plugins = internalPlugins?.plugins as Record<string, unknown> | undefined;
+			const dailyNotesPlugin = plugins?.['daily-notes'] as Record<string, unknown> | undefined;
+			const instance = dailyNotesPlugin?.instance as Record<string, unknown> | undefined;
+			const options = instance?.options as Record<string, unknown> | undefined;
+			return (options?.folder as string) || '';
+		} catch {
+			return '';
+		}
 	}
 
 	/**

@@ -34,6 +34,9 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 	 * Register the monthly tracker code block processor
 	 */
 	register(): void {
+		// Obsidian API expects callback matching their handler signature
+		// The API doesn't have proper TypeScript definitions for this method
+		 
 		this.plugin.registerMarkdownCodeBlockProcessor(
 			'note-insight-monthly',
 			this.process.bind(this)
@@ -43,11 +46,11 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 	/**
 	 * Process a monthly tracker code block
 	 */
-	async process(
+	process(
 		source: string,
 		el: HTMLElement,
 		ctx: MarkdownPostProcessorContext
-	): Promise<void> {
+	): void {
 		try {
 			// Parse configuration
 			const config = this.parseConfig(source);
@@ -61,44 +64,52 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 			const { id, notePath, selectedMonth } = config;
 
-			// Validate required fields
-			if (!notePath) {
-				el.createEl('div', {
-					text: 'Error: notePath must be specified',
+		// Validate required fields
+		if (!notePath) {
+			el.createEl('div', {
+				text: 'Error: note path must be specified',
 					cls: 'note-insight-error'
 				});
 				return;
 			}
 
-			// Get the file
-			const file = this.app.vault.getAbstractFileByPath(notePath);
-			if (!file) {
-				el.createEl('div', {
-					text: `Error: Note not found: ${notePath}`,
-					cls: 'note-insight-error'
-				});
-				return;
-			}
+		// Get the file
+		const file = this.app.vault.getAbstractFileByPath(notePath);
+		if (!file) {
+			el.createEl('div', {
+				text: `Error: note not found: ${notePath}`,
+				cls: 'note-insight-error'
+			});
+			return;
+		}
 
-			// Parse selectedMonth or use current month
-			let initialMonth: number;
-			let initialYear: number;
+		if (!(file instanceof TFile)) {
+			el.createEl('div', {
+				text: `Error: path is not a file: ${notePath}`,
+				cls: 'note-insight-error'
+			});
+			return;
+		}
 
-			if (selectedMonth) {
-				const [yearStr, monthStr] = selectedMonth.split('-');
-				initialYear = parseInt(yearStr, 10);
-				initialMonth = parseInt(monthStr, 10) - 1; // Month is 0-indexed
-			} else {
-				const now = new Date();
-				initialMonth = now.getMonth();
-				initialYear = now.getFullYear();
-			}
+		// Parse selectedMonth or use current month
+		let initialMonth: number;
+		let initialYear: number;
+
+		if (selectedMonth) {
+			const [yearStr, monthStr] = selectedMonth.split('-');
+			initialYear = parseInt(yearStr, 10);
+			initialMonth = parseInt(monthStr, 10) - 1; // Month is 0-indexed
+		} else {
+			const now = new Date();
+			initialMonth = now.getMonth();
+			initialYear = now.getFullYear();
+		}
 
 		// Get monthly data
-		const monthlyData = this.analysisService.getMonthlyData(file as TFile, initialMonth, initialYear);
+		const monthlyData = this.analysisService.getMonthlyData(file, initialMonth, initialYear);
 
 		// Get month bounds
-		const monthBounds = this.analysisService.getMonthBounds(file as TFile);
+		const monthBounds = this.analysisService.getMonthBounds(file);
 
 		// Create container
 		const container = el.createEl('div', { cls: 'note-insight-code-block monthly' });
@@ -113,8 +124,8 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 		// Set month bounds and data with watched note path
 		tracker.setMonthBounds(monthBounds);
-		tracker.updateData(monthlyData, notePath);
-		tracker.setCurrentMonth(initialMonth, initialYear);
+		void tracker.updateData(monthlyData, notePath);
+		void tracker.setCurrentMonth(initialMonth, initialYear);
 
 		// Register metadata-cache listener for auto-refresh
 		const eventRef = this.app.metadataCache.on('resolved', debounce(() => {
@@ -125,16 +136,16 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 			// Re-analyze the watched note and update the component
 			const updatedFile = this.app.vault.getAbstractFileByPath(notePath);
-			if (updatedFile) {
+			if (updatedFile && updatedFile instanceof TFile) {
 				// Get the currently displayed month/year from the component
 				const { month, year } = tracker.getCurrentMonth();
 
 				// Get updated monthly data for the current view
-				const updatedMonthlyData = this.analysisService.getMonthlyData(updatedFile as TFile, month, year);
-				const updatedMonthBounds = this.analysisService.getMonthBounds(updatedFile as TFile);
+				const updatedMonthlyData = this.analysisService.getMonthlyData(updatedFile, month, year);
+				const updatedMonthBounds = this.analysisService.getMonthBounds(updatedFile);
 
 				tracker.setMonthBounds(updatedMonthBounds);
-				tracker.updateData(updatedMonthlyData, notePath);
+				void tracker.updateData(updatedMonthlyData, notePath);
 			}
 		}, 5000));
 
@@ -158,13 +169,18 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 		renderChild.onunload = () => {
 			this.cleanupInstance(id);
 		};
-		ctx.addChild(renderChild);	} catch (error) {
-			logger.error('[MonthlyTrackerCodeBlockProcessor] Error:', error);
-			el.createEl('div', {
-				text: `Error: ${error.message}`,
-				cls: 'note-insight-error'
-			});
+		ctx.addChild(renderChild);
+	} catch (error) {
+		logger.error('[MonthlyTrackerCodeBlockProcessor] Error:', error);
+		let errorMessage = 'Error rendering monthly tracker';
+		if (error instanceof Error) {
+			errorMessage = `Error: ${error.message}`;
 		}
+		el.createEl('div', {
+			text: errorMessage,
+			cls: 'note-insight-error'
+		});
+	}
 	}
 
 	/**
@@ -193,12 +209,12 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 	/**
 	 * Handle month selection change
 	 */
-	private async onMonthChanged(
+	private onMonthChanged(
 		ctx: MarkdownPostProcessorContext,
 		instanceId: string,
 		month: number,
 		year: number
-	): Promise<void> {
+	): void {
 		const instance = this.instances.get(instanceId);
 		if (!instance || instance.isUpdatingCodeblock) {
 			return;
@@ -211,12 +227,9 @@ export class MonthlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 		instance.isUpdatingCodeblock = true;
 
-		try {
-			await this.updateCodeblockProperty(ctx, instance, 'selectedMonth', newMonthStr);
-		} finally {
-			setTimeout(() => {
-				instance.isUpdatingCodeblock = false;
-			}, 100);
-		}
+		this.updateCodeblockProperty(ctx, instance, 'selectedMonth', newMonthStr).catch(() => {});
+		setTimeout(() => {
+			instance.isUpdatingCodeblock = false;
+		}, 100);
 	}
 }

@@ -77,7 +77,7 @@ export class FolderSelector extends SuggestModal<TFolder> {
 	/**
 	 * Handle selection
 	 */
-	onChooseSuggestion(folder: TFolder, evt: MouseEvent | KeyboardEvent): void {
+	onChooseSuggestion(folder: TFolder, _evt: MouseEvent | KeyboardEvent): void {
 		this.onSelect(folder);
 	}
 }

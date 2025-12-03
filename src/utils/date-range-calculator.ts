@@ -77,13 +77,14 @@ export class DateRangeCalculator {
 				endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 				break;
 
-			case TimePeriod.THIS_QUARTER:
+			case TimePeriod.THIS_QUARTER: {
 				const currentQuarter = Math.floor(now.getMonth() / 3);
 				const quarterStartMonth = currentQuarter * 3;
 				startDate = new Date(now.getFullYear(), quarterStartMonth, 1, 0, 0, 0, 0);
 				// Last day of quarter at 23:59:59.999
 				endDate = new Date(now.getFullYear(), quarterStartMonth + 3, 0, 23, 59, 59, 999);
 				break;
+			}
 
 			case TimePeriod.THIS_YEAR:
 				startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);

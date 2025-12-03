@@ -23,9 +23,13 @@ export class BacklinkAnalysisService {
 		const resolvedLinks = this.app.metadataCache.resolvedLinks;
 		
 		// Iterate through all files to find those that link to our target file
+		if (!resolvedLinks || typeof resolvedLinks !== 'object') {
+			return backlinks;
+		}
+		
 		for (const sourcePath in resolvedLinks) {
-			const links = resolvedLinks[sourcePath];
-			if (links && links[file.path]) {
+			const links = (resolvedLinks)[sourcePath];
+			if (links && typeof links === 'object' && links[file.path]) {
 				const sourceFile = this.app.vault.getAbstractFileByPath(sourcePath);
 				if (sourceFile instanceof TFile) {
 					backlinks.push({

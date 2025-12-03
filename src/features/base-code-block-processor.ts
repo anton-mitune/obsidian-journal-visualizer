@@ -1,11 +1,14 @@
 import { App, Plugin, MarkdownPostProcessorContext, TFile, EventRef } from 'obsidian';
 import { logger } from '../utils/logger';
+import { BacklinkCounterComponent } from 'src/ui/backlink-counter-component';
+import { YearlyTrackerComponent } from 'src/ui/yearly-tracker-component';
+import { MonthlyTrackerComponent } from 'src/ui/monthly-tracker-component';
 
 /**
  * Tracks a code block instance for cleanup and updates
  */
 export interface CodeBlockInstance {
-	component: any;
+	component: BacklinkCounterComponent | YearlyTrackerComponent | MonthlyTrackerComponent | {cleanup: () => void} | null;
 	codeblockId: string; // ID from the codeblock config (for updates)
 	eventRef: EventRef;
 	type: 'yearly' | 'monthly' | 'counter';
@@ -13,7 +16,7 @@ export interface CodeBlockInstance {
 	el: HTMLElement;
 	lastKnownPeriod: number | string;
 	isUpdatingCodeblock: boolean;
-	notePath?: string[]; // For counter component - track watched notes
+	notePath?: string | string[]; // For counter component - track watched notes
 }
 
 /**
@@ -44,7 +47,7 @@ export abstract class BaseCodeBlockProcessor {
 		source: string,
 		el: HTMLElement,
 		ctx: MarkdownPostProcessorContext
-	): Promise<void>;
+	): void;
 
 	/**
 	 * Clean up an existing instance if it exists
@@ -80,7 +83,10 @@ export abstract class BaseCodeBlockProcessor {
 			return null;
 		}
 
+		// needed to use undocumented API
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const canvasFile = (view as any).file;
+
 		if (!canvasFile || !(canvasFile instanceof TFile)) {
 			return null;
 		}
@@ -120,8 +126,8 @@ export abstract class BaseCodeBlockProcessor {
 	 * }
 	 * ```
 	 */
-	protected parseCodeBlockConfig(source: string): Record<string, any> {
-		const config: Record<string, any> = {};
+	protected parseCodeBlockConfig(source: string): Record<string, string | string[]> {
+		const config: Record<string, string | string[]> = {};
 		const lines = source.trim().split('\n');
 
 		for (const line of lines) {
@@ -133,11 +139,12 @@ export abstract class BaseCodeBlockProcessor {
 				const value = trimmedLine.substring(colonIndex + 1).trim();
 
 				// If key already exists, convert to array or append to existing array
-				if (config.hasOwnProperty(key)) {
-					if (Array.isArray(config[key])) {
-						config[key].push(value);
+				if (key in config) {
+					const existingValue = config[key];
+					if (Array.isArray(existingValue)) {
+						existingValue.push(value);
 					} else {
-						config[key] = [config[key], value];
+						config[key] = [existingValue, value];
 					}
 				} else {
 					config[key] = value;
@@ -189,7 +196,7 @@ export abstract class BaseCodeBlockProcessor {
 		ctx: MarkdownPostProcessorContext,
 		instance: CodeBlockInstance,
 		propertyName: string,
-		propertyValue: any
+		propertyValue: string | number | string[]
 	): Promise<void> {
 		const normalizedValue = this.normalizePropertyValue(propertyValue);
 
@@ -198,15 +205,12 @@ export abstract class BaseCodeBlockProcessor {
 		} else {
 			await this.updateNote(ctx, instance, propertyName, normalizedValue);
 		}
-
-		// Update instance state on success
-		instance.lastKnownPeriod = propertyValue;
 	}
 
 	/**
 	 * Normalize property value to string array format
 	 */
-	private normalizePropertyValue(value: any): string[] {
+	private normalizePropertyValue(value: unknown): string[] {
 		if (Array.isArray(value)) {
 			return value.map(v => String(v));
 		}
@@ -233,7 +237,8 @@ export abstract class BaseCodeBlockProcessor {
 			const canvasData = JSON.parse(canvasContent);
 
 			// Find text nodes containing matching codeblock by ID
-			const matchingNodes: any[] = [];
+			 
+			const matchingNodes = [];
 			for (const node of canvasData.nodes || []) {
 				if (node.type === 'text' && typeof node.text === 'string') {
 					if (node.text.includes('```note-insight-') && node.text.includes(`id: ${instance.codeblockId}`)) {
@@ -259,10 +264,10 @@ export abstract class BaseCodeBlockProcessor {
 				node.text = updatedLines.join('\n');
 			}
 
-			// Save canvas file
-			await this.app.vault.modify(canvasFile, JSON.stringify(canvasData, null, 2));
-		} catch (error) {
-			logger.error('[BaseCodeBlockProcessor] Canvas update error:', error);
+		// Save canvas file
+		await this.app.vault.modify(canvasFile, JSON.stringify(canvasData, null, 2));
+	} catch (error) {
+		logger.error('[BaseCodeBlockProcessor] Canvas update error:', error);
 		}
 	}
 
@@ -294,11 +299,11 @@ export abstract class BaseCodeBlockProcessor {
 				propertyValue
 			);
 
-			// Write updated content
-			const updatedContent = updatedLines.join('\n');
-			await this.app.vault.modify(file, updatedContent);
-		} catch (error) {
-			logger.error('[BaseCodeBlockProcessor] Note update error:', error);
+		// Write updated content
+		const updatedContent = updatedLines.join('\n');
+		await this.app.vault.modify(file, updatedContent);
+	} catch (error) {
+		logger.error('[BaseCodeBlockProcessor] Note update error:', error);
 		}
 	}
 

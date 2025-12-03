@@ -4,12 +4,11 @@ import { NoteCounterResult } from '../types';
  * PieRenderer - Renders pie charts for backlink distribution among watched notes
  * FEA006: Pie Visualization
  * 
- * Uses Chart.js for rendering pie charts showing proportional backlink counts
- * for multiple watched notes, sorted by count descending starting from 12 o'clock position.
+ * Renders pie charts showing proportional backlink counts for multiple watched notes,
+ * sorted by count descending starting from 12 o'clock position using CSS conic-gradient.
  */
 export class PieRenderer {
 	private container: HTMLElement;
-	private chart: any; // Chart.js instance
 
 	constructor(container: HTMLElement) {
 		this.container = container;
@@ -33,13 +32,8 @@ export class PieRenderer {
 		// Sort results by count (descending), then by title (ascending) for ties
 		const sortedResults = this.sortResults(results);
 
-		// Create canvas element for Chart.js
-		this.container.createEl('canvas', {
-			cls: 'pie-chart-canvas'
-		});
-
-		// For now, render placeholder content until Chart.js is properly integrated
-		this.renderPlaceholder(sortedResults, periodLabel, colors);
+		// Render pie chart visualization
+		this.renderChart(sortedResults, periodLabel, colors);
 	}
 
 	/**
@@ -57,26 +51,25 @@ export class PieRenderer {
 	}
 
 	/**
-	 * Render placeholder content showing the pie chart visualization
-	 * This will be replaced with actual Chart.js rendering once Chart.js is integrated
+	 * Render pie chart visualization using CSS conic-gradient
 	 * @param colors Optional array of colors to use for the pie slices (FEA010)
 	 */
-	private renderPlaceholder(results: NoteCounterResult[], periodLabel: string, colors?: string[]): void {
+	private renderChart(results: NoteCounterResult[], periodLabel: string, colors?: string[]): void {
 		// Clear existing content
 		this.container.empty();
 		
-		const placeholderContainer = this.container.createEl('div', {
-			cls: 'pie-placeholder'
+		const container = this.container.createEl('div', {
+			cls: 'pie-container'
 		});
 
 		// Title
-		placeholderContainer.createEl('h4', {
-			text: `Backlink Distribution (${periodLabel})`,
+		container.createEl('h4', {
+			text: `Backlink distribution (${periodLabel})`,
 			cls: 'pie-title'
 		});
 
 		// Create pie chart visualization container
-		const chartWrapper = placeholderContainer.createEl('div', {
+		const chartWrapper = container.createEl('div', {
 			cls: 'pie-chart-wrapper'
 		});
 
@@ -174,7 +167,7 @@ export class PieRenderer {
 	 */
 	private renderEmptyState(): void {
 		this.container.createEl('div', {
-			text: '📊 No data available for pie visualization',
+			text: 'No data available for pie visualization',
 			cls: 'pie-empty-state'
 		});
 	}
@@ -190,12 +183,9 @@ export class PieRenderer {
 	}
 
 	/**
-	 * Clean up Chart.js instance
+	 * Clean up resources
 	 */
 	destroy(): void {
-		if (this.chart) {
-			this.chart.destroy();
-			this.chart = null;
-		}
+		// No resources to clean up
 	}
 }

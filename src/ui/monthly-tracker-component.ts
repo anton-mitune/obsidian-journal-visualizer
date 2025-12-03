@@ -1,4 +1,4 @@
-import { App } from 'obsidian';
+import { App, TFile } from 'obsidian';
 import { DailyNoteYearlyData, DailyNoteBacklinkSummary, MonthNavigationState, MonthBounds } from '../types';
 import { DailyNoteClassifier } from '../utils/daily-note-classifier';
 
@@ -217,11 +217,11 @@ export class MonthlyTrackerComponent {
 		});
 
 		// Make title clickable
-		noteTitle.addEventListener('click', async () => {
+		noteTitle.addEventListener('click', () => {
 			if (this.watchedNotePath) {
 				const file = this.app.vault.getAbstractFileByPath(this.watchedNotePath);
-				if (file) {
-					await this.app.workspace.getLeaf(false).openFile(file as any);
+				if (file instanceof TFile) {
+					this.app.workspace.getLeaf(false).openFile(file).catch(() => {});
 				}
 			}
 		});
@@ -441,8 +441,8 @@ export class MonthlyTrackerComponent {
 		// FEA003 Requirement 6: Make days with backlinks clickable
 		if (summary.linkCount > 0) {
 			element.addClass('monthly-tracker-square-clickable');
-			element.addEventListener('click', async () => {
-				await this.openDailyNote(date);
+			element.addEventListener('click', () => {
+				this.openDailyNote(date).catch(() => {});
 			});
 		}
 	}
@@ -458,5 +458,9 @@ export class MonthlyTrackerComponent {
 		if (file) {
 			await this.app.workspace.getLeaf(false).openFile(file);
 		}
+	}
+
+	public cleanup(): void {
+		// No special cleanup needed for this component
 	}
 }

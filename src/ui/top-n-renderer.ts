@@ -4,12 +4,11 @@ import { NoteCounterResult } from '../types';
  * TopNRenderer - Renders horizontal bar charts for top-N note backlink counts
  * FEA007: Top Bars Visualization
  * 
- * Uses Chart.js for rendering horizontal bar charts showing backlink counts
- * for multiple watched notes in descending order.
+ * Renders horizontal bar charts showing backlink counts for multiple watched notes
+ * in descending order using HTML and CSS styling.
  */
 export class TopNRenderer {
 	private container: HTMLElement;
-	private chart: any; // Chart.js instance
 
 	constructor(container: HTMLElement) {
 		this.container = container;
@@ -32,13 +31,8 @@ export class TopNRenderer {
 		// Sort results by count (descending), then by title (ascending) for ties
 		const sortedResults = this.sortResults(results);
 
-		// Create canvas element for Chart.js
-		this.container.createEl('canvas', {
-			cls: 'top-n-chart-canvas'
-		});
-
-		// For now, render placeholder content until Chart.js is properly integrated
-		this.renderPlaceholder(sortedResults, periodLabel);
+		// Render bar chart visualization
+		this.renderBars(sortedResults, periodLabel);
 	}
 
 	/**
@@ -54,32 +48,31 @@ export class TopNRenderer {
 	}
 
 	/**
-	 * Render placeholder content showing the data structure
-	 * This will be replaced with actual Chart.js rendering once Chart.js is integrated
+	 * Render horizontal bars visualization using HTML and CSS
 	 */
-	private renderPlaceholder(results: NoteCounterResult[], periodLabel: string): void {
+	private renderBars(results: NoteCounterResult[], periodLabel: string): void {
 		// Clear existing content
 		this.container.empty();
 		
-		const placeholderContainer = this.container.createEl('div', {
-			cls: 'top-n-placeholder'
+		const container = this.container.createEl('div', {
+			cls: 'top-n-container'
 		});
 
 		// Title
-		placeholderContainer.createEl('h4', {
-			text: `Top ${results.length} Notes by Backlinks (${periodLabel})`,
+		container.createEl('h4', {
+			text: `Top ${results.length} notes by backlinks (${periodLabel})`,
 			cls: 'top-n-title'
 		});
 
-		// Create horizontal bar-like visualization using HTML/CSS
-		const chartContainer = placeholderContainer.createEl('div', {
-			cls: 'top-n-chart-placeholder'
+		// Create horizontal bar visualization using HTML/CSS
+		const chartContainer = container.createEl('div', {
+			cls: 'top-n-chart-container'
 		});
 
 		// Find max count to normalize bar widths
 		const maxCount = Math.max(...results.map(r => r.count));
 
-		results.forEach((result, index) => {
+		results.forEach((result) => {
 			const barContainer = chartContainer.createEl('div', {
 				cls: 'top-n-bar-container'
 			});
@@ -119,7 +112,7 @@ export class TopNRenderer {
 	 */
 	private renderEmptyState(): void {
 		this.container.createEl('div', {
-			text: '📊 No data available for top-N visualization',
+			text: 'No data available for top-n visualization',
 			cls: 'top-n-empty-state'
 		});
 	}
@@ -135,12 +128,9 @@ export class TopNRenderer {
 	}
 
 	/**
-	 * Clean up Chart.js instance
+	 * Clean up resources
 	 */
 	destroy(): void {
-		if (this.chart) {
-			this.chart.destroy();
-			this.chart = null;
-		}
+		// No resources to clean up
 	}
 }

@@ -20,9 +20,9 @@ export class NoteInsightContextMenuManager {
 	register(): void {
 		// Register editor menu event for context menu integration
 		this.plugin.registerEvent(
-			this.app.workspace.on('editor-menu', ((menu: Menu, editor: Editor, info: MarkdownView | MarkdownFileInfo) => {
+			this.app.workspace.on('editor-menu', ((menu: Menu, editor: Editor, _info: MarkdownView | MarkdownFileInfo) => {
 				this.addMenuItems(menu, editor);
-			}) as any)
+			}))
 		);
 	}
 
@@ -33,30 +33,30 @@ export class NoteInsightContextMenuManager {
 		// Add separator before our options
 		menu.addSeparator();
 
-		// Add "Add Yearly Tracker from Vault" option
+		// Add "Add yearly tracker from vault" option
 		menu.addItem((item) => {
 			item
-				.setTitle('Add Yearly Tracker from Vault')
+				.setTitle('Add yearly tracker from vault')
 				.setIcon('bar-chart-3')
 				.onClick(() => {
 					this.showNoteSelectorForYearly(editor);
 				});
 		});
 
-		// Add "Add Monthly Tracker from Vault" option
+		// Add "Add monthly tracker from vault" option
 		menu.addItem((item) => {
 			item
-				.setTitle('Add Monthly Tracker from Vault')
+				.setTitle('Add monthly tracker from vault')
 				.setIcon('calendar')
 				.onClick(() => {
 					this.showNoteSelectorForMonthly(editor);
 				});
 		});
 
-		// Add "Add Counter" option
+		// Add "Add counter" option
 		menu.addItem((item) => {
 			item
-				.setTitle('Add Counter')
+				.setTitle('Add counter')
 				.setIcon('hash')
 				.onClick(() => {
 					this.insertCounterComponent(editor);
@@ -117,31 +117,29 @@ export class NoteInsightContextMenuManager {
 		
 		const view = activeLeaf.view;
 		if (view.getViewType() === 'canvas') {
-			const canvas = (view as any).canvas;
-			if (canvas && canvas.selection && canvas.selection.size === 1) {
-				const node = canvas.selection.values().next().value;
-				if (node) {
-					// Try different resizing methods based on common canvas API patterns
-					if (typeof node.moveAndResize === 'function') {
-						node.moveAndResize({
-							x: node.x,
-							y: node.y,
-							width: width,
-							height: height
-						});
-					} else if (typeof node.setSize === 'function') {
-						node.setSize({ width, height });
-					} else if (typeof node.resize === 'function') {
-						node.resize({ width, height });
-					} else {
-						// Fallback: set properties and request save
-						node.width = width;
-						node.height = height;
-						if (typeof canvas.requestSave === 'function') {
-							canvas.requestSave();
-						}
-					}
+			const canvas = (view as unknown as Record<string, unknown>).canvas as Record<string, unknown> | undefined;
+			if (!canvas) return;
+			
+			const selection = canvas.selection as { size?: number; values?: () => IterableIterator<unknown> } | undefined;
+			if (!selection || !selection.size || selection.size !== 1) return;
+			
+			const valuesIterator = selection.values?.();
+			if (!valuesIterator) return;
+			
+			const node = valuesIterator.next()?.value as Record<string, unknown> | undefined;
+			if (!node) return;
+			
+			try {
+				if (typeof node.moveAndResize === 'function') {
+					node.moveAndResize.call(node, {
+						x: node.x,
+						y: node.y,
+						width: width,
+						height: height
+					});
 				}
+			} catch (error) {
+				console.error('[NoteInsight] Canvas resizing failed:', error);
 			}
 		}
 	}

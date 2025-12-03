@@ -7,14 +7,15 @@ import { TimePeriod, DisplayMode, WatchMode } from '../types';
 import { debounce } from '../utils/debounce';
 import { logger } from '../utils/logger';
 
+
 /**
  * Configuration parsed from counter code block
  */
 interface CounterCodeBlockConfig {
 	id: string; // Required - written by insert command
-	notePath?: string[];
+	notePath?: string | string[];
 	watchMode?: WatchMode; // FEA009: watch mode (note or folder)
-	folderPath?: string; // FEA009: folder path for folder watching
+	folderPath?: string | string[]; // FEA009: folder path for folder watching
 	selectedPeriod?: TimePeriod;
 	displayAs?: DisplayMode; // FEA007: Display mode support
 }
@@ -43,6 +44,9 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 	 * Register the counter code block processor
 	 */
 	register(): void {
+		// Obsidian API expects callback matching their handler signature
+		// The API doesn't have proper TypeScript definitions for this method
+		 
 		this.plugin.registerMarkdownCodeBlockProcessor(
 			'note-insight-counter',
 			this.process.bind(this)
@@ -52,17 +56,17 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 	/**
 	 * Process a counter code block
 	 */
-	async process(
+	process(
 		source: string,
 		el: HTMLElement,
 		ctx: MarkdownPostProcessorContext
-	): Promise<void> {
+	): void {
 		try {
 			// Parse configuration
 			const config = this.parseConfig(source);
 			if (!config) {
 				el.createEl('div', {
-					text: 'Error: notePath or notePaths not specified',
+					text: 'Error: note path or note paths not specified',
 					cls: 'note-insight-error'
 				});
 				return;
@@ -78,7 +82,7 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 			// Other states require either notes or folder path
 			if (!isEmptyState && !hasNotes && !hasFolder) {
 				el.createEl('div', {
-					text: 'Error: notePath or folderPath must be specified',
+					text: 'Error: note path or folder path must be specified',
 					cls: 'note-insight-error'
 				});
 				return;
@@ -125,12 +129,11 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 			// FEA009: Configure watched items with watchMode and folderPath
 			// Convert folderPath string to array if present
-			const folderPathArray = config.folderPath ? [config.folderPath] : undefined;
-			counter.updateWatchedItems({ 
+			void counter.updateWatchedItems({ 
 				notePath: config.notePath,
 				displayAs: initialDisplayMode,
 				watchMode: initialWatchMode,
-				folderPath: folderPathArray
+				folderPath: config.folderPath
 			});
 			// Register metadata-cache listener for auto-refresh
 			const eventRef = this.app.metadataCache.on('resolved', debounce(() => {
@@ -144,17 +147,17 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 				const currentDisplayMode = config.displayAs ?? DisplayMode.DEFAULT;
 				const hasNotes = instance.notePath && instance.notePath.length > 0;
 				if (hasNotes) {
-					counter.updateWatchedItems({ 
+					void counter.updateWatchedItems({ 
 						notePath: instance.notePath,
 						displayAs: currentDisplayMode
 					});
-				} else if (config.folderPath) {
-					// Trigger re-render by updating with the same folder path
-					counter.updateWatchedItems({
-						folderPath: [config.folderPath],
-						displayAs: currentDisplayMode,
-						watchMode: WatchMode.FOLDER
-					});
+			} else if (config.folderPath) {
+				// Trigger re-render by updating with the same folder path
+				void counter.updateWatchedItems({
+					folderPath: config.folderPath,
+					displayAs: currentDisplayMode,
+					watchMode: WatchMode.FOLDER
+				});
 				}
 			}, 5000));
 
@@ -181,8 +184,12 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 			ctx.addChild(renderChild);
 		} catch (error) {
 			logger.error('[CounterCodeBlockProcessor] Error:', error);
+			let errorMessage = 'Error rendering counter';
+			if (error instanceof Error) {
+				errorMessage = `Error rendering counter: ${error.message}`;
+			}
 			el.createEl('div', {
-				text: `Error rendering counter: ${error.message}`,
+				text: errorMessage,
 				cls: 'note-insight-error'
 			});
 		}
@@ -191,58 +198,82 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 	 * Parse counter configuration from code block source
 	 */
 	private parseConfig(source: string): CounterCodeBlockConfig | null {
-		const config = this.parseCodeBlockConfig(source);
+		const rawConfig = this.parseCodeBlockConfig(source);
+		const config: Record<string, string | string[]> = {};
 
-		// validate config format against expected types
-		// if id is not present, error, we won't be able to update later
-		if (!config['id']) {
+		// Validate and convert id (required)
+		if (typeof rawConfig.id !== 'string' || !rawConfig.id) {
 			throw new Error(`Invalid code block config: missing required 'id' property`);
 		}
-		// check if notePath is a string, make it an array
-		if (config['notePath'] && typeof config['notePath'] === 'string') {
-			config['notePath'] = [config['notePath']];
-		}
-		// if notepath is undefined or not a string, make it empty array
-		if (!config['notePath'] || !(typeof config['notePath'] === 'string' || Array.isArray(config['notePath']))) {
-			config['notePath'] = [];
-		}
-		
-		// FEA009: Parse watchMode - default to 'note' for backward compatibility
-		if (!config['watchMode'] || !Object.values(WatchMode).includes(config['watchMode'])) {
-			config['watchMode'] = WatchMode.NOTE;
-		}
-		
-		// FEA009: Parse folderPath - keep as string if present, undefined otherwise
-		if (config['folderPath'] && typeof config['folderPath'] !== 'string') {
-			config['folderPath'] = String(config['folderPath']);
-		}
-		// Ensure folderPath is either a string or undefined (not empty string)
-		if (config['folderPath'] === '' || config['folderPath'] === 'undefined') {
-			delete config['folderPath'];
-		}
-		
-		// if selected period is not set or not one of the enum values, set acceptable default
-		if (!config['selectedPeriod'] || !Object.values(TimePeriod).includes(config['selectedPeriod'])) {
-			config['selectedPeriod'] = TimePeriod.PAST_30_DAYS;
-		}
-		// if display mode is not set or not one of the enum values, set acceptable default
-		if (!config['displayMode'] || !Object.values(DisplayMode).includes(config['displayMode'])) {
-			config['displayMode'] = DisplayMode.DEFAULT;
+		config.id = rawConfig.id;
+
+		// Convert notePath to string array
+		if (typeof rawConfig.notePath === 'string') {
+			config.notePath = [rawConfig.notePath];
+		} else if (Array.isArray(rawConfig.notePath)) {
+			config.notePath = rawConfig.notePath;
+		} else {
+			config.notePath = [];
 		}
 
-		// return typed config as CounterCodeBlockConfig
-		this.config = config as CounterCodeBlockConfig;
-		return config as CounterCodeBlockConfig
+		// FEA009: Parse watchMode - default to 'note' for backward compatibility
+		if (rawConfig.watchMode && Object.values(WatchMode).includes(rawConfig.watchMode as WatchMode)) {
+			config.watchMode = rawConfig.watchMode as WatchMode;
+		} else {
+			config.watchMode = WatchMode.NOTE;
+		}
+
+		// FEA009: Parse folderPath - keep as string if present, undefined otherwise
+		if (typeof rawConfig.folderPath === 'string') {
+			// Only set folderPath if it's a non-empty string and not the literal 'undefined'
+			if (rawConfig.folderPath && rawConfig.folderPath !== 'undefined') {
+				config.folderPath = rawConfig.folderPath;
+			}
+		} else if (rawConfig.folderPath) {
+			// Convert non-string values to string if present
+			const folderPathStr = JSON.stringify(rawConfig.folderPath);
+			if (folderPathStr && folderPathStr !== 'undefined') {
+				config.folderPath = folderPathStr;
+			}
+		}
+
+		// Parse selectedPeriod with validation
+		if (rawConfig.selectedPeriod && Object.values(TimePeriod).includes(rawConfig.selectedPeriod as TimePeriod)) {
+			config.selectedPeriod = rawConfig.selectedPeriod as TimePeriod;
+		} else {
+			config.selectedPeriod = TimePeriod.PAST_30_DAYS;
+		}
+
+		// Parse displayMode with validation
+		if (rawConfig.displayMode && Object.values(DisplayMode).includes(rawConfig.displayMode as DisplayMode)) {
+			config.displayMode = rawConfig.displayMode as DisplayMode;
+		} else {
+			config.displayMode = DisplayMode.DEFAULT;
+		}
+
+		// if watchMode is not valid enum value, make it undefined
+
+
+		// Return typed config as CounterCodeBlockConfig
+		this.config = {
+			id: config.id,
+			notePath: config.notePath,
+			watchMode: Object.values(WatchMode).includes(config.watchMode as WatchMode) ? config.watchMode as WatchMode : WatchMode.NOTE,
+			folderPath: config.folderPath,
+			selectedPeriod: Object.values(TimePeriod).includes(config.selectedPeriod as TimePeriod) ? config.selectedPeriod as TimePeriod : TimePeriod.PAST_30_DAYS,
+			displayAs: Object.values(DisplayMode).includes(config.displayMode as DisplayMode) ? config.displayMode as DisplayMode : DisplayMode.DEFAULT
+		}
+		return JSON.parse(JSON.stringify(this.config)) as CounterCodeBlockConfig;
 	}
 
 	/**
 	 * Handle period selection change
 	 */
-	private async onPeriodChanged(
+	private onPeriodChanged(
 		ctx: MarkdownPostProcessorContext,
 		instanceId: string,
 		newPeriod: TimePeriod
-	): Promise<void> {
+	): void {
 		const instance = this.instances.get(instanceId);
 		logger.warn('[CounterCodeBlockProcessor] Period changing to', newPeriod, 'for instance', instanceId, instance);
 		if (!instance || instance.isUpdatingCodeblock) {
@@ -255,24 +286,20 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 		instance.isUpdatingCodeblock = true;
 
-
-		try {
-			await this.updateCodeblockProperty(ctx, instance, 'selectedPeriod', newPeriod);
-		} finally {
-			setTimeout(() => {
-				instance.isUpdatingCodeblock = false;
-			}, 100);
-		}
+		this.updateCodeblockProperty(ctx, instance, 'selectedPeriod', newPeriod).catch(() => {});
+		window.setTimeout(() => {
+			instance.isUpdatingCodeblock = false;
+		}, 100);
 	}
 
 	/**
 	 * Handle display mode change (FEA007)
 	 */
-	private async onDisplayModeChanged(
+	private onDisplayModeChanged(
 		ctx: MarkdownPostProcessorContext,
 		instanceId: string,
 		newMode: DisplayMode
-	): Promise<void> {
+	): void {
 		const instance = this.instances.get(instanceId);
 		if (!instance || instance.isUpdatingCodeblock) {
 			return;
@@ -280,23 +307,20 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 		instance.isUpdatingCodeblock = true;
 
-		try {
-			await this.updateCodeblockProperty(ctx, instance, 'displayAs', newMode);
-		} finally {
-			setTimeout(() => {
-				instance.isUpdatingCodeblock = false;
-			}, 100);
-		}
+		this.updateCodeblockProperty(ctx, instance, 'displayAs', newMode).catch(() => {});
+		setTimeout(() => {
+			instance.isUpdatingCodeblock = false;
+		}, 100);
 	}
 
 	/**
 	 * Handle note added
 	 */
-	private async onNoteAdded(
+	private onNoteAdded(
 		ctx: MarkdownPostProcessorContext,
 		instanceId: string,
 		notePath: string
-	): Promise<void> {
+	): void {
 		logger.log('[CounterCodeBlockProcessor] Adding note to watch list:', notePath);
 		const instance = this.instances.get(instanceId);
 
@@ -306,26 +330,27 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 		instance.isUpdatingCodeblock = true;
 
-		try {
-			if (this.config?.notePath?.includes(notePath) === false) {
-				this.config.notePath.push(notePath);
-				await this.updateCodeblockProperty(ctx, instance, 'notePath', this.config.notePath);
+		if (this.config?.notePath) {
+			const notePathArray = Array.isArray(this.config.notePath) ? this.config.notePath : [this.config.notePath];
+			if (!notePathArray.includes(notePath)) {
+				notePathArray.push(notePath);
+				this.config.notePath = notePathArray;
+				this.updateCodeblockProperty(ctx, instance, 'notePath', this.config.notePath).catch(() => {});
 			}
-		} finally {
-			setTimeout(() => {
-				instance.isUpdatingCodeblock = false;
-			}, 100);
 		}
+		setTimeout(() => {
+			instance.isUpdatingCodeblock = false;
+		}, 100);
 	}
 
 	/**
 	 * Handle note removed
 	 */
-	private async onNoteRemoved(
+	private onNoteRemoved(
 		ctx: MarkdownPostProcessorContext,
 		instanceId: string,
 		notePath: string
-	): Promise<void> {
+	): void {
 		const instance = this.instances.get(instanceId);
 		if (!instance || instance.isUpdatingCodeblock) {
 			return;
@@ -333,26 +358,27 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 		instance.isUpdatingCodeblock = true;
 
-		try {
-			if (this.config?.notePath?.includes(notePath)) {
-				this.config.notePath = this.config.notePath.filter(p => p !== notePath);
-				await this.updateCodeblockProperty(ctx, instance, 'notePath', this.config.notePath);
+		if (this.config?.notePath) {
+			const notePathArray = Array.isArray(this.config.notePath) ? this.config.notePath : [this.config.notePath];
+			if (notePathArray.includes(notePath)) {
+				const filtered = notePathArray.filter((p: string) => p !== notePath);
+				this.config.notePath = filtered;
+				this.updateCodeblockProperty(ctx, instance, 'notePath', this.config.notePath).catch(() => {});
 			}
-		} finally {
-			setTimeout(() => {
-				instance.isUpdatingCodeblock = false;
-			}, 100);
 		}
+		setTimeout(() => {
+			instance.isUpdatingCodeblock = false;
+		}, 100);
 	}
 
 	/**
 	 * Handle watch mode change (FEA009)
 	 */
-	private async onWatchModeChanged(
+	private onWatchModeChanged(
 		ctx: MarkdownPostProcessorContext,
 		instanceId: string,
 		newMode: WatchMode
-	): Promise<void> {
+	): void {
 		const instance = this.instances.get(instanceId);
 		if (!instance || instance.isUpdatingCodeblock) {
 			return;
@@ -360,23 +386,20 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 		instance.isUpdatingCodeblock = true;
 
-		try {
-			await this.updateCodeblockProperty(ctx, instance, 'watchMode', newMode);
-		} finally {
-			setTimeout(() => {
-				instance.isUpdatingCodeblock = false;
-			}, 100);
-		}
+		this.updateCodeblockProperty(ctx, instance, 'watchMode', newMode).catch(() => {});
+		setTimeout(() => {
+			instance.isUpdatingCodeblock = false;
+		}, 100);
 	}
 
 	/**
 	 * Handle folder added (FEA009)
 	 */
-	private async onFolderAdded(
+	private onFolderAdded(
 		ctx: MarkdownPostProcessorContext,
 		instanceId: string,
 		folderPath: string
-	): Promise<void> {
+	): void {
 		const instance = this.instances.get(instanceId);
 		if (!instance || instance.isUpdatingCodeblock) {
 			return;
@@ -384,22 +407,19 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 		instance.isUpdatingCodeblock = true;
 
-		try {
-			await this.updateCodeblockProperty(ctx, instance, 'folderPath', folderPath);
-		} finally {
-			setTimeout(() => {
-				instance.isUpdatingCodeblock = false;
-			}, 100);
-		}
+		this.updateCodeblockProperty(ctx, instance, 'folderPath', folderPath).catch(() => {});
+		setTimeout(() => {
+			instance.isUpdatingCodeblock = false;
+		}, 100);
 	}
 
 	/**
 	 * Handle folder removed (FEA009)
 	 */
-	private async onFolderRemoved(
+	private onFolderRemoved(
 		ctx: MarkdownPostProcessorContext,
 		instanceId: string
-	): Promise<void> {
+	): void {
 		const instance = this.instances.get(instanceId);
 		if (!instance || instance.isUpdatingCodeblock) {
 			return;
@@ -407,14 +427,11 @@ export class CounterCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 		instance.isUpdatingCodeblock = true;
 
-		try {
-			// Remove folderPath property by writing empty string array
-			await this.updateCodeblockProperty(ctx, instance, 'folderPath', []);
-		} finally {
-			setTimeout(() => {
-				instance.isUpdatingCodeblock = false;
-			}, 100);
-		}
+		// Remove folderPath property by writing empty string array
+		this.updateCodeblockProperty(ctx, instance, 'folderPath', []).catch(() => {});
+		setTimeout(() => {
+			instance.isUpdatingCodeblock = false;
+		}, 100);
 	}
 }
 

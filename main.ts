@@ -116,7 +116,7 @@ export default class VaultVisualizerPlugin extends Plugin {
 		}));
 	}
 
-	async onunload() {
+	onunload(): void {
 		// Clean up components
 		if (this.backlinkWatcher) {
 			this.backlinkWatcher.stopWatching();
@@ -136,7 +136,8 @@ export default class VaultVisualizerPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const loadedData = await this.loadData();
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData as VaultVisualizerSettings);
 	}
 
 	async saveSettings() {
@@ -145,5 +146,12 @@ export default class VaultVisualizerPlugin extends Plugin {
 		if (this.settingsService) {
 			this.settingsService.updateSettings(this.settings);
 		}
+	}
+
+	/**
+	 * Override the loadData method to specify the return type.
+	 */
+	async loadData(): Promise<Partial<VaultVisualizerSettings>> {
+		return super.loadData() as Promise<Partial<VaultVisualizerSettings>>;
 	}
 }

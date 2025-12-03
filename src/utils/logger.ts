@@ -40,25 +40,25 @@ class Logger {
 	/**
 	 * Debug level logging - for detailed diagnostic information
 	 */
-	debug(message: string, ...args: any[]): void {
+	debug(message: string, ...args: unknown[]): void {
 		if (this.level <= LogLevel.DEBUG) {
-			console.log(`${this.prefix} [DEBUG]`, message, ...args);
+			console.debug(`${this.prefix} [DEBUG]`, message, ...args);
 		}
 	}
 
 	/**
 	 * Info level logging - for general informational messages
 	 */
-	info(message: string, ...args: any[]): void {
+	info(message: string, ...args: unknown[]): void {
 		if (this.level <= LogLevel.INFO) {
-			console.log(`${this.prefix} [INFO]`, message, ...args);
+			console.debug(`${this.prefix} [INFO]`, message, ...args);
 		}
 	}
 
 	/**
 	 * Warning level logging - for potentially harmful situations
 	 */
-	warn(message: string, ...args: any[]): void {
+	warn(message: string, ...args: unknown[]): void {
 		if (this.level <= LogLevel.WARN) {
 			console.warn(`${this.prefix} [WARN]`, message, ...args);
 		}
@@ -67,7 +67,7 @@ class Logger {
 	/**
 	 * Error level logging - for error events
 	 */
-	error(message: string, ...args: any[]): void {
+	error(message: string, ...args: unknown[]): void {
 		if (this.level <= LogLevel.ERROR) {
 			console.error(`${this.prefix} [ERROR]`, message, ...args);
 		}
@@ -76,9 +76,9 @@ class Logger {
 	/**
 	 * Log without level prefix (for backward compatibility)
 	 */
-	log(message: string, ...args: any[]): void {
+	log(message: string, ...args: unknown[]): void {
 		if (this.level <= LogLevel.INFO) {
-			console.log(`${this.prefix}`, message, ...args);
+			console.debug(`${this.prefix}`, message, ...args);
 		}
 	}
 }

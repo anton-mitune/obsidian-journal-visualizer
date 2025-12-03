@@ -33,6 +33,9 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 	 * Register the yearly tracker code block processor
 	 */
 	register(): void {
+		// Obsidian API expects callback matching their handler signature
+		// The API doesn't have proper TypeScript definitions for this method
+		 
 		this.plugin.registerMarkdownCodeBlockProcessor(
 			'note-insight-yearly',
 			this.process.bind(this)
@@ -42,11 +45,11 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 	/**
 	 * Process a yearly tracker code block
 	 */
-	async process(
+	process(
 		source: string,
 		el: HTMLElement,
 		ctx: MarkdownPostProcessorContext
-	): Promise<void> {
+	): void {
 		try {
 			// Parse configuration
 			const config = this.parseConfig(source);
@@ -60,38 +63,45 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 			const { id, notePath, selectedYear } = config;
 
-			// Validate required fields
-			if (!notePath) {
-				el.createEl('div', {
-					text: 'Error: notePath must be specified',
+		// Validate required fields
+		if (!notePath) {
+			el.createEl('div', {
+				text: 'Error: note path must be specified',
 					cls: 'note-insight-error'
 				});
 				return;
 			}
 
-			// Get the file
-			const file = this.app.vault.getAbstractFileByPath(notePath);
-			if (!file) {
-				el.createEl('div', {
-					text: `Error: Note not found: ${notePath}`,
-					cls: 'note-insight-error'
-				});
-				return;
-			}
+		// Get the file
+		const file = this.app.vault.getAbstractFileByPath(notePath);
+		if (!file) {
+			el.createEl('div', {
+				text: `Error: note not found: ${notePath}`,
+				cls: 'note-insight-error'
+			});
+			return;
+		}
 
-			// Analyze the note
-			const noteInfo = this.analysisService.analyzeNoteByPath(notePath);
-			if (!noteInfo || !noteInfo.yearlyData) {
-				el.createEl('div', {
-					text: 'Error: Unable to analyze note',
-					cls: 'note-insight-error'
-				});
-				return;
-			}
+		if (!(file instanceof TFile)) {
+			el.createEl('div', {
+				text: `Error: path is not a file: ${notePath}`,
+				cls: 'note-insight-error'
+			});
+			return;
+		}
+
+		// Analyze the note
+		const noteInfo = this.analysisService.analyzeNoteByPath(notePath);
+		if (!noteInfo || !noteInfo.yearlyData) {
+			el.createEl('div', {
+				text: 'Error: unable to analyze note',
+				cls: 'note-insight-error'
+			});
+			return;
+		}
 
 		// Get year bounds
-		const yearBounds = this.analysisService.getYearBounds(file as TFile);
-
+		const yearBounds = this.analysisService.getYearBounds(file);		
 		// Create container
 		const container = el.createEl('div', { cls: 'note-insight-code-block yearly' });
 
@@ -121,10 +131,10 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 			const updatedNoteInfo = this.analysisService.analyzeNoteByPath(notePath);
 			if (updatedNoteInfo && updatedNoteInfo.yearlyData) {
 				const updatedFile = this.app.vault.getAbstractFileByPath(notePath);
-				if (updatedFile) {
-					const updatedYearBounds = this.analysisService.getYearBounds(updatedFile as TFile);
+				if (updatedFile && updatedFile instanceof TFile) {
+					const updatedYearBounds = this.analysisService.getYearBounds(updatedFile);
 					tracker.setYearBounds(updatedYearBounds);
-					tracker.updateData(updatedNoteInfo.yearlyData, notePath);
+					void tracker.updateData(updatedNoteInfo.yearlyData, notePath);
 				}
 			}
 		}, 5000));
@@ -150,14 +160,17 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 			this.cleanupInstance(id);
 		};
 		ctx.addChild(renderChild);
-
 	} catch (error) {
-			logger.error('[YearlyTrackerCodeBlockProcessor] Error:', error);
-			el.createEl('div', {
-				text: `Error: ${error.message}`,
-				cls: 'note-insight-error'
-			});
+		logger.error('[YearlyTrackerCodeBlockProcessor] Error:', error);
+		let errorMessage = 'Error rendering yearly tracker';
+		if (error instanceof Error) {
+			errorMessage = `Error: ${error.message}`;
 		}
+		el.createEl('div', {
+			text: errorMessage,
+			cls: 'note-insight-error'
+		});
+	}
 	}
 
 	/**
@@ -195,11 +208,11 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 	/**
 	 * Handle year selection change
 	 */
-	private async onYearChanged(
+	private onYearChanged(
 		ctx: MarkdownPostProcessorContext,
 		instanceId: string,
 		newYear: number
-	): Promise<void> {
+	): void {
 		const instance = this.instances.get(instanceId);
 		if (!instance || instance.isUpdatingCodeblock) {
 			return;
@@ -211,12 +224,9 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 
 		instance.isUpdatingCodeblock = true;
 
-		try {
-			await this.updateCodeblockProperty(ctx, instance, 'selectedYear', newYear);
-		} finally {
-			setTimeout(() => {
-				instance.isUpdatingCodeblock = false;
-			}, 100);
-		}
+		this.updateCodeblockProperty(ctx, instance, 'selectedYear', newYear).catch(() => {});
+		setTimeout(() => {
+			instance.isUpdatingCodeblock = false;
+		}, 100);
 	}
 }

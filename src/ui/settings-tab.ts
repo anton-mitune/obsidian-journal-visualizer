@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type VaultVisualizerPlugin from '../../main';
 import { ColorPalette, COLOR_PALETTES } from '../types';
+import { logger } from '../utils/logger';
 
 /**
  * SettingsTab - Plugin settings page
@@ -20,7 +21,7 @@ export class VaultVisualizerSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'Vault Visualizer Settings' });
+		new Setting(containerEl).setName("Vault visualizer").setHeading();
 
 		// First Day of Week Setting
 		new Setting(containerEl)
@@ -35,9 +36,9 @@ export class VaultVisualizerSettingTab extends PluginSettingTab {
 				.addOption('5', 'Friday')
 				.addOption('6', 'Saturday')
 				.setValue(String(this.plugin.settings.firstDayOfWeek))
-				.onChange(async (value) => {
+				.onChange((value) => {
 					this.plugin.settings.firstDayOfWeek = parseInt(value) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
-					await this.plugin.saveSettings();
+					void this.plugin.saveSettings();
 				}));
 
 		// Max Watched Notes Setting
@@ -47,16 +48,16 @@ export class VaultVisualizerSettingTab extends PluginSettingTab {
 			.addText(text => text
 				.setPlaceholder('50')
 				.setValue(String(this.plugin.settings.maxWatchedNotes))
-				.onChange(async (value) => {
+				.onChange((value) => {
 					const num = parseInt(value);
 					if (!isNaN(num) && num > 0) {
 						this.plugin.settings.maxWatchedNotes = num;
-						await this.plugin.saveSettings();
+						void this.plugin.saveSettings();
 					}
 				}));
 
 		// Series Colors Section
-		containerEl.createEl('h3', { text: 'Default Series Colors' });
+		new Setting(containerEl).setName("Default series colors").setHeading();
 		containerEl.createEl('p', { 
 			text: 'Set default colors for up to 10 series in visualizations.',
 			cls: 'setting-item-description'
@@ -66,11 +67,11 @@ export class VaultVisualizerSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Suggested color palette')
 			.setDesc('You can also customize individual series colors below by using the color picker.')
-			.addDropdown(dropdown => dropdown
-				.addOption(ColorPalette.VIBRANT, 'Vibrant')
-				.addOption(ColorPalette.PASTEL, 'Pastel Dreamland')
+		.addDropdown(dropdown => dropdown
+			.addOption(ColorPalette.VIBRANT, 'Vibrant')
+			.addOption(ColorPalette.PASTEL, 'Pastel dreamland')
 				.setValue(this.plugin.settings.suggestedColorPalette)
-				.onChange(async (value) => {
+				.onChange((value) => {
 					const palette = value as ColorPalette;
 					this.plugin.settings.suggestedColorPalette = palette;
 					
@@ -81,7 +82,7 @@ export class VaultVisualizerSettingTab extends PluginSettingTab {
 						(this.plugin.settings[colorKey] as string) = paletteColors[i];
 					}
 					
-					await this.plugin.saveSettings();
+					void this.plugin.saveSettings();
 					
 					// Refresh the display to show updated colors
 					this.display();
@@ -94,32 +95,38 @@ export class VaultVisualizerSettingTab extends PluginSettingTab {
 				.setName(`Series ${i} color`)
 				.addColorPicker(color => color
 					.setValue(this.plugin.settings[colorKey] as string)
-					.onChange(async (value) => {
+					.onChange((value) => {
 						(this.plugin.settings[colorKey] as string) = value;
-						await this.plugin.saveSettings();
+						void this.plugin.saveSettings();
 					}));
 		}
 
 		// Reload Obsidian Button
-		containerEl.createEl('h3', { text: 'Troubleshooting' });
+		new Setting(containerEl).setName("Troubleshooting").setHeading();
 		new Setting(containerEl)
 			.setName('Reload Obsidian')
 			.setDesc('If some changes are not taking effect, you can reload Obsidian to apply them.')
 			.addButton(button => button
-				.setButtonText('Reload')
+				.setButtonText('Reload Obsidian')
 				.onClick(() => {
-					// @ts-ignore - undocumented API
-					this.app.commands.executeCommandById('app:reload');
+					try {
+						// @ts-ignore - undocumented API
+						(this.app.commands as unknown as Record<string, unknown>).executeCommandById('app:reload');
+					} catch (error) {
+						logger.error('Failed to reload Obsidian:', error);
+					}
 				}));
 
 		// Advanced Settings Section (collapsed by default)
-		containerEl.createEl('h3', { text: 'Advanced Settings' });
+		new Setting(containerEl).setName("Advanced").setHeading();
 		const advancedContainer = containerEl.createEl('details', { cls: 'vault-visualizer-advanced-settings' });
 		advancedContainer.createEl('summary', { text: 'Show advanced settings' });
 
 		// Log Level Setting
 		new Setting(advancedContainer)
 			.setName('Log level')
+			// Dropdown option labels are semantically styled differently from regular UI text
+			// eslint-disable-next-line obsidianmd/ui/sentence-case
 			.setDesc('Set the minimum log level for console output. Lower levels show more messages. Requires reload. You should not need to change this unless you are a developper troubleshooting an issue. Setting this to "Debug", or "Info" may produce a large volume of log messages and impact performance.')
 			.addDropdown(dropdown => dropdown
 				.addOption('0', 'Debug (all messages)')
@@ -128,9 +135,9 @@ export class VaultVisualizerSettingTab extends PluginSettingTab {
 				.addOption('3', 'Error (default)')
 				.addOption('4', 'None (silent)')
 				.setValue(String(this.plugin.settings.logLevel))
-				.onChange(async (value) => {
+				.onChange((value) => {
 					this.plugin.settings.logLevel = parseInt(value);
-					await this.plugin.saveSettings();
+					void this.plugin.saveSettings();
 				}));
 
 

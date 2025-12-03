@@ -166,7 +166,7 @@ export class NoteInsightsView extends ItemView {
 		// counter section (FEA005)
 		const counterSection = container.createEl('div', { cls: 'note-insights-section' });
 		counterSection.createEl('div', {
-			text: 'counter',
+			text: 'Counter',
 			cls: 'note-insights-label'
 		});
 		

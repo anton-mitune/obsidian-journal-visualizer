@@ -61,8 +61,8 @@ export class ViewManager {
 				const view = new NoteInsightsView(leaf);
 
 				// Set services when view is created (when user opens it)
-				view.setAnalysisService(this.analysisService);
-				view.setSettingsService(this.settingsService);
+				void view.setAnalysisService(this.analysisService);
+				void view.setSettingsService(this.settingsService);
 				
 				// Set callbacks if available
 				if (this.onYearChangeCallback) {
@@ -80,8 +80,8 @@ export class ViewManager {
 		);
 
 		// Add ribbon icon to toggle the view
-		this.plugin.addRibbonIcon('bar-chart-3', 'Note insights', () => {
-			this.activateView();
+		this.plugin.addRibbonIcon('bar-chart-3', 'Note insights', async () => {
+			await this.activateView();
 		});
 	}
 
@@ -96,7 +96,7 @@ export class ViewManager {
 			
 			if (existingLeaf) {
 				// View exists, just reveal it
-				this.app.workspace.revealLeaf(existingLeaf);
+				void this.app.workspace.revealLeaf(existingLeaf);
 				this.view = existingLeaf.view as NoteInsightsView;
 			} else {
 				// Create new view in right sidebar
@@ -139,12 +139,15 @@ export class ViewManager {
 				this.view = existingLeaf.view as NoteInsightsView;
 				// Ensure analysis service is set
 				if(!this.view.setAnalysisService) return;
+				 
 				this.view.setAnalysisService(this.analysisService);
 				// Set callbacks if available
 				if (this.onYearChangeCallback) {
+					 
 					this.view.setOnYearChangeCallback(this.onYearChangeCallback);
 				}
 				if (this.onMonthChangeCallback) {
+					 
 					this.view.setOnMonthChangeCallback(this.onMonthChangeCallback);
 				}
 			}

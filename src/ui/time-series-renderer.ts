@@ -199,7 +199,7 @@ export class TimeSeriesRenderer {
 		// Draw lines for each series
 		const linesGroup = svg.createSvg('g', { attr: { cls: 'time-series-lines' } });
 		
-		seriesData.forEach((series, seriesIndex) => {
+		seriesData.forEach((series, _seriesIndex) => {
 			// Create a map of date -> count for this series
 			const dataMap = new Map<string, number>();
 			series.dataPoints.forEach(point => {
@@ -303,7 +303,7 @@ export class TimeSeriesRenderer {
 	 */
 	private renderEmptyState(): void {
 		this.container.createEl('div', {
-			text: '📊 No data available for time-series visualization',
+			text: 'No data available for time-series visualization',
 			cls: 'time-series-empty-state'
 		});
 	}

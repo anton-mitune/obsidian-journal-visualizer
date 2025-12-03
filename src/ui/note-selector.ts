@@ -44,7 +44,7 @@ export class NoteSelector extends SuggestModal<TFile> {
 	/**
 	 * Handle selection
 	 */
-	onChooseSuggestion(file: TFile, evt: MouseEvent | KeyboardEvent): void {
+	onChooseSuggestion(file: TFile, _evt: MouseEvent | KeyboardEvent): void {
 		this.onSelect(file);
 	}
 }

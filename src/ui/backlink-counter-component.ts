@@ -1,5 +1,5 @@
 import { App, TFile, setIcon } from 'obsidian';
-import { TimePeriod, CounterState, BacklinkInfo, NoteCounterResult, DisplayMode, WatchMode } from '../types';
+import { TimePeriod, CounterState, BacklinkInfo, NoteCounterResult, DisplayMode, WatchMode, DailyNoteYearlyData } from '../types';
 import { DateRangeCalculator } from '../utils/date-range-calculator';
 import { DailyNoteClassifier } from '../utils/daily-note-classifier';
 import { BacklinkAnalysisService } from '../services/backlink-analysis-service';
@@ -112,12 +112,13 @@ export class BacklinkCounterComponent {
 	 * - Watch mode and folder path (FEA009)
 	 */
 	updateWatchedItems(config: { 
-		notePath?: string[]; 
+		notePath?: string | string[]; 
 		displayAs?: DisplayMode;
 		watchMode?: WatchMode;
-		folderPath?: string[];
+		folderPath?: string | string[];
 	}): void {
-		this.state.notePath = config.notePath;
+		// Normalize to array format
+		this.state.notePath = config.notePath ? (Array.isArray(config.notePath) ? config.notePath : [config.notePath]) : undefined;
 		if (config.displayAs !== undefined) {
 			this.state.displayAs = config.displayAs;
 		}
@@ -126,7 +127,7 @@ export class BacklinkCounterComponent {
 			this.state.watchMode = config.watchMode;
 		}
 		if (config.folderPath !== undefined) {
-			this.state.folderPath = config.folderPath;
+			this.state.folderPath = Array.isArray(config.folderPath) ? config.folderPath : [config.folderPath];
 		}
 		this.updateCounts();
 		this.render();
@@ -762,7 +763,7 @@ export class BacklinkCounterComponent {
 		// Get time-series data for each watched note
 		const firstDayOfWeek = this.settingsService.getSettings().firstDayOfWeek;
 		const dateRange = DateRangeCalculator.calculateDateRange(this.state.selectedPeriod, firstDayOfWeek);
-		const timeSeriesData: Array<{ notePath: string; noteTitle: string; data: any }> = [];
+		const timeSeriesData: Array<{ notePath: string; noteTitle: string; data: DailyNoteYearlyData }> = [];
 		
 		// Build time series data from displayed results (limited)
 		for (const result of displayedResults) {
