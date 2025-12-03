@@ -7,7 +7,7 @@ No tinker, no setup, just click and see.
 
 ## Important note
 
-This plugin assumes you are journaling using daily notes, and using links from your daily notes to other notes in your vault to log activities, moods, symptoms, interactions with persons, piece of media, tasks, projects, etc...
+This is a third party plugin. It assumes you are journaling using daily notes, and using links from your daily notes to other notes in your vault to log activities, moods, symptoms, interactions with persons, piece of media, tasks, projects, etc...
 
 If you're not doing that, this plugin probably won't be very useful to you.
 
@@ -80,7 +80,7 @@ Sure the graph view can give you a satisfying visual representation of your seco
 
 ## About
 
-I'm french dev and music producer based in France.
+I'm french dev and music producer.
 
 This plugin is inspired by the way I journal, and the tools I wish I had when I started with Obsidian. It's not meant to be a one-size-fits-all solution. It's clearly opinionated, and tailored to my own journaling style.
 
