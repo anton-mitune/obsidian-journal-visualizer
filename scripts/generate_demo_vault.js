@@ -1,7 +1,12 @@
 #!/usr/bin/env node
-const fs = require('fs');
-const path = require('path');
-const { faker } = require('@faker-js/faker');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { faker } from '@faker-js/faker';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -1071,9 +1076,11 @@ The journal entries cross-reference everything, so you'll see meaningful backlin
   console.log('✓ Demo vault generation complete!');
 }
 
-if (require.main === module) {
-  const args = require('minimist')(process.argv.slice(2));
+import minimist from 'minimist';
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const args = minimist(process.argv.slice(2));
   generate({ out: args.out, end: args.end });
 }
 
-module.exports = { generate };
+export { generate };
