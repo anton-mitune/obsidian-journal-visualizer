@@ -74,7 +74,7 @@ export class YearlyTrackerComponent {
 	/**
 	 * Set the current year to display
 	 */
-	setCurrentYear(year: number): void {
+	setCurrentYear(year: number, notify: boolean = true): void {
 		if (year < this.yearBounds.minYear || year > this.yearBounds.maxYear) {
 			return; // Invalid year
 		}
@@ -82,8 +82,7 @@ export class YearlyTrackerComponent {
 		this.navigationState.currentYear = year;
 		this.render();
 		
-		// Notify callback if provided
-		if (this.onYearChangeCallback) {
+		if (notify && this.onYearChangeCallback) {
 			this.onYearChangeCallback(year);
 		}
 	}

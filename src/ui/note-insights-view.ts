@@ -23,6 +23,9 @@ export class NoteInsightsView extends ItemView {
 	private monthBounds: MonthBounds | null = null;
 	private onYearChangeCallback?: (year: number) => void;
 	private onMonthChangeCallback?: (month: number, year: number) => void;
+	private selectedYear: number = new Date().getFullYear();
+	private selectedMonth: number = new Date().getMonth();
+	private selectedMonthYear: number = new Date().getFullYear();
 	private classifier: DailyNoteClassifier;
 	private analysisService: BacklinkAnalysisService | null = null;
 	private settingsService: SettingsService | null = null;
@@ -74,6 +77,7 @@ export class NoteInsightsView extends ItemView {
 		if (monthBounds) {
 			this.monthBounds = monthBounds;
 		}
+		logger.warn('[NoteInsightsView] Updating note info:', yearBounds, monthBounds);
 		this.render();
 	}
 
@@ -90,6 +94,21 @@ export class NoteInsightsView extends ItemView {
 	setOnMonthChangeCallback(callback: (month: number, year: number) => void): void {
 		this.onMonthChangeCallback = callback;
 	}
+
+	private handleYearChange = (year: number): void => {
+		this.selectedYear = year;
+		if (this.onYearChangeCallback) {
+			this.onYearChangeCallback(year);
+		}
+	};
+
+	private handleMonthChange = (month: number, year: number): void => {
+		this.selectedMonth = month;
+		this.selectedMonthYear = year;
+		if (this.onMonthChangeCallback) {
+			this.onMonthChangeCallback(month, year);
+		}
+	};
 
 	/**
 	 * Clear the view when no note is active
@@ -198,7 +217,7 @@ export class NoteInsightsView extends ItemView {
 				logger.warn('[NoteInsightsView] Counter - no active file');
 			}
 		} else {
-			logger.error('[NoteInsightsView] Counter - analysisService is null! Cannot create counter.');
+			logger.warn('[NoteInsightsView] Counter - analysisService is null! Cannot create counter.');
 			counterSection.createEl('div', {
 				text: 'Counter unavailable (service not initialized)',
 				cls: 'note-insights-error'
@@ -215,7 +234,7 @@ export class NoteInsightsView extends ItemView {
 			// Create monthly tracker container
 			const monthlyTrackerContainer = monthlySection.createEl('div', { cls: 'note-insights-monthly-tracker' });
 			// Always create a new tracker for each note
-			this.monthlyTracker = new MonthlyTrackerComponent(this.app, monthlyTrackerContainer, this.onMonthChangeCallback);
+			this.monthlyTracker = new MonthlyTrackerComponent(this.app, monthlyTrackerContainer, this.handleMonthChange);
 			// Get active file path for click handlers
 			const activeFile = this.app.workspace.getActiveFile();
 			if (activeFile) {
@@ -228,6 +247,7 @@ export class NoteInsightsView extends ItemView {
 			if (this.monthBounds) {
 				this.monthlyTracker.setMonthBounds(this.monthBounds);
 			}
+			this.monthlyTracker.setCurrentMonth(this.selectedMonth, this.selectedMonthYear, false);
 		}
 
 		// Yearly tracker section
@@ -240,7 +260,7 @@ export class NoteInsightsView extends ItemView {
 			// Create yearly tracker container
 			const trackerContainer = yearlySection.createEl('div', { cls: 'note-insights-yearly-tracker' });
 			// Always create a new tracker for each note
-			this.yearlyTracker = new YearlyTrackerComponent(this.app, trackerContainer, this.onYearChangeCallback);
+			this.yearlyTracker = new YearlyTrackerComponent(this.app, trackerContainer, this.handleYearChange);
 			// Get active file path for click handlers
 			const activeFile = this.app.workspace.getActiveFile();
 			if (activeFile) {
@@ -253,6 +273,7 @@ export class NoteInsightsView extends ItemView {
 			if (this.yearBounds) {
 				this.yearlyTracker.setYearBounds(this.yearBounds);
 			}
+			this.yearlyTracker.setCurrentYear(this.selectedYear, false);
 		}
 	}
 

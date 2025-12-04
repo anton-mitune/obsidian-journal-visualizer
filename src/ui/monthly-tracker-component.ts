@@ -87,7 +87,7 @@ export class MonthlyTrackerComponent {
 	/**
 	 * Set the current month/year to display
 	 */
-	setCurrentMonth(month: number, year: number): void {
+	setCurrentMonth(month: number, year: number, notify: boolean = true): void {
 		if (this.isMonthBefore(month, year, this.monthBounds.minMonth, this.monthBounds.minYear) ||
 			this.isMonthAfter(month, year, this.monthBounds.maxMonth, this.monthBounds.maxYear)) {
 			return; // Invalid month/year
@@ -97,8 +97,8 @@ export class MonthlyTrackerComponent {
 		this.navigationState.currentYear = year;
 		this.render();
 		
-		// Notify callback if provided
-		if (this.onMonthChangeCallback) {
+		// Notify callback if provided and allowed
+		if (notify && this.onMonthChangeCallback) {
 			this.onMonthChangeCallback(month, year);
 		}
 	}
