@@ -1,7 +1,7 @@
 {
 	"id": "journal-visualizer",
 	"name": "Journal Visualizer",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "Effortless insight about your Daily Notes. No tinker, no setup, just click and see.",
 	"author": "Anton Mitune (@anton-mitune)",

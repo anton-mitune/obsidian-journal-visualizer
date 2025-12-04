@@ -1,7 +1,7 @@
 {
 	"type": "module",
 	"name": "journal-visualizer",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Turn your notes into insight. Get contextual stats, dashboards, and smart suggestions for your vault.",
 	"main": "main.js",
 	"scripts": {
