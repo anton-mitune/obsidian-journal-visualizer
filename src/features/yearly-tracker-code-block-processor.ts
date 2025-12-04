@@ -91,7 +91,7 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 		}
 
 		// Analyze the note
-		const noteInfo = this.analysisService.analyzeNoteByPath(notePath);
+		const noteInfo = this.analysisService.analyzeNoteByPath(notePath, selectedYear);
 		if (!noteInfo || !noteInfo.yearlyData) {
 			el.createEl('div', {
 				text: 'Error: unable to analyze note',
@@ -116,9 +116,9 @@ export class YearlyTrackerCodeBlockProcessor extends BaseCodeBlockProcessor {
 		tracker.setYearBounds(yearBounds);
 		tracker.updateData(noteInfo.yearlyData, notePath);
 
-			// Set the selected year
-			const initialYear = selectedYear ?? new Date().getFullYear();
-			tracker.setCurrentYear(initialYear);
+		// Set the selected year
+		const initialYear = selectedYear ?? new Date().getFullYear();
+		tracker.setCurrentYear(initialYear);
 
 		// Register metadata-cache listener for auto-refresh
 		const eventRef = this.app.metadataCache.on('resolved', debounce(() => {
